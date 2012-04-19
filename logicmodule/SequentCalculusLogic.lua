@@ -6,7 +6,7 @@
 
 ]]--
 
-require "SequentGraph"
+dofile "..\\logicmodule\\SequentGraph.lua"
 
 -- Sequente alvo da operação
 GoalSequent = nil

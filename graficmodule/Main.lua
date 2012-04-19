@@ -6,10 +6,10 @@
 
 ]]--
 
-require 'Constants'
-require 'Utility'
-require 'Graph'
-require 'SequentCalculusLogic'
+require 'Constants.lua'
+require 'Utility.lua'
+--require 'Graph.lua'
+dofile '..\\logicmodule\\SequentCalculusLogic.lua'
 
 
 -- Love initial configuration
@@ -21,6 +21,7 @@ isDragging = false
 --[[
 	Create a graph, used just for tests
 ]]--
+--[[
 function createGraph()	
 
 	SequentGraph = Graph:new ()
@@ -55,7 +56,7 @@ function createGraph()
 	
 
 end
-
+]]--
 --createGraph()-- SÓ PARA TESTES:
 SequentGraph = createGraphFromString("")
 
