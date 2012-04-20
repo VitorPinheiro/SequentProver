@@ -10,7 +10,7 @@
 ]]--
 
 dofile "..\\logicmodule\\ConstantsForSequent.lua"
-require "Graph.lua"
+dofile '..\\graphmodule\\Graph.lua'
 
 -- Contadores dos operadores
 edgeCount = 0

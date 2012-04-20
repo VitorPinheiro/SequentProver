@@ -2,7 +2,7 @@
 
 	Constants Module
 	
-	Contains all the constants used by the aplication.
+	Contains all the constants used by the grafic module.
 
 	Author: Vitor
 

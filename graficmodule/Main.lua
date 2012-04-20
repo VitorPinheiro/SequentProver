@@ -8,8 +8,8 @@
 
 require 'Constants.lua'
 require 'Utility.lua'
---require 'Graph.lua'
 dofile '..\\logicmodule\\SequentCalculusLogic.lua'
+--dofile '..\\graphmodule\\Graph.lua' -- Adicione este quando for usar direto o modulo grafo.
 
 
 -- Love initial configuration
