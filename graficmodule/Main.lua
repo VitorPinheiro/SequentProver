@@ -58,15 +58,14 @@ function createGraph()
 end
 ]]--
 --createGraph()-- SÓ PARA TESTES:
-SequentGraph = createGraphFromString("")
 
---[[
-	Esta função chama a função de criar grafo de um determinado sistema de prova.
+-- Private function
+--[[	
 	Ela prepara as posições (x,y) de todos os vertices para que eles possam ser desenhados.
 ]]--
-function prepareGraphToDraw()
+local function prepareGraphToDraw(graph)
 	
-	nodes = SequentGraph:getNodes()
+	nodes = graph:getNodes()
 	
 	posX = xBegin
 	posY = yBegin
@@ -84,65 +83,29 @@ function prepareGraphToDraw()
 		end
 	end
 
+	return graph
 end
-
-prepareGraphToDraw()
 
 --[[
-	Recive a graph and draws it on the screen.
+	Chama a função de criar grafo de um determinado sistema de prova.
 ]]--
-function drawGraph(graph)
-	local i = 1
-	
-	assert( getmetatable(graph) == Graph_Metatable , "drawGraph expects a graph.")
-	
-	local nodes = graph:getNodes()
-	local edges = graph:getEdges()
-	
-	-- Desenha os vertices
-	if nodes ~= nil then
-		while i <= #nodes do
-		
-			local node = nodes[i]
-			
-			love.graphics.setColor(0, 255, 0) -- Green circle		
-			love.graphics.circle("fill", node:getPositionX(), node:getPositionY(), raioDoVertice, 25)
-			love.graphics.setColor(0, 0, 0, 99) -- Black 99%
-			love.graphics.circle("line", node:getPositionX(), node:getPositionY(), 6)
-			love.graphics.print(node:getLabel(), node:getPositionX() - 10, node:getPositionY() - circleSeparation , 0, escalaLetraVertice, escalaLetraVertice )
-			i = i + 1
-		end
-	end
-	
-	i=1
-	-- Desenha as arestas
-	if edges ~= nil then
-		while i <= #edges do
-			
-			local edge = edges[i]
 
-			love.graphics.setColor(0, 0, 0, 99) -- Black 99%
-			local x1, y1 = edge:getOrigem():getPosition()
-			local x2, y2 = edge:getDestino():getPosition()
-			love.graphics.line(x1, y1, x2, y2)
-			
-			inclinacao = getInclinacaoAresta(edge)
-			--createDebugMessage(edge:getLabel() .." : ".. inclinacao)
-			--createDebugMessage("y1 = "..y1 .. "y2 = "..y2)		
-			love.graphics.print(edge:getLabel(), (x1 + x2)/2 , (y1 + y2)/2  , inclinacao, escalaLetraAresta, escalaLetraAresta )
-			
-			i = i + 1
-		end
-	end
-	
-	ApplyForces(SequentGraph)
-end
+-- Essa funcao tera que ser implementada pelo logicmodule
+-- Queria criar uma forma de criar uma interface para ser implementada pelo logic module
+-- Talvez criar uma tabela que seja LogicModule e que ela tenha funcoes a ser implementadas.
+-- que ai quem quiser criar um novo sistema de prova é só completar os espaços.
+-- Variavel privada
+local SequentGraph = LogicModule.createGraphFromString("")
 
+-- WARNING - tirar daqui
+prepareGraphToDraw(SequentGraph)
+
+-- Private functions
 --[[
 	Dada uma aresta, ele retorna o angulo em radianos que a aresta faz com o eixo horizontal.
 	É usada para escrever textos em cima das arestas.
 ]]--
-function getInclinacaoAresta(edge)
+local function getInclinacaoAresta(edge)
 	local inclinacao
 	local x2Maiorx1 = false
 	local y2Maiory1 = false
@@ -197,89 +160,9 @@ function getInclinacaoAresta(edge)
 end
 
 --[[
-	Esta função verifica se algum vertice foi clicado pelo usuário. E retorna este vertice.
-]]--
-function getNodeClicked()	
-	-- Varrer todo o grafo procurando o vertice que pode ter sido clicado.
-	nodes = SequentGraph:getNodes()	
-	for i=1, #nodes do			
-		x,y = nodes[i]:getPosition()
-		
-		if (love.mouse.getX() <= x + raioDoVertice) and (love.mouse.getX() >= x - raioDoVertice) then
-			if (love.mouse.getY() <= y + raioDoVertice) and (love.mouse.getY() >= y - raioDoVertice) then
-				-- Este vertice foi clicado
-				return nodes[i]
-			end
-		end
-	end
-	return nil	
-end
-
---[[
-	Esta função é chamada pela love.draw.
-	A todo instante ela verifica se o botão esquerdo do mouse foi apertado. Em caso positivo 
-	conforme o botão continuar sendo pressionado e caso o clicke tenha sido em um vertice esta função
-	ira alterar a posição de desenho do vertice, criando o efeito do drag and drop.
-]]--
-function dragNodeOrScreen()
-
-	grabbed = love.mouse.isGrabbed( )
-	
-	if grabbed then
-		--createDebugMessage("grabbed = true")
-	else
-		--createDebugMessage("grabbed = false")
-	end
-	
-	-- Chama o modulo de prova associado.
-	if love.mouse.isDown("r") and not isDragging then
-		nodeClicked = getNodeClicked()
-
-		-- WARNING - Continuar VITOR
-	end
-
-	if love.mouse.isDown("l") and not isDragging then
-		nodeMoving = getNodeClicked()
-		isDragging = true
-		
-		xInitial = love.mouse.getX()
-		yInitial = love.mouse.getY()
-		-- Mudar o xInicial e o yInicial sempre que o mouse parar tb seria uma boa!
-		
-	elseif not love.mouse.isDown("l") then
-		isDragging = false
-		nodeMoving = "nao vazio"
-	elseif nodeMoving ~= "nao vazio" and nodeMoving ~= nil then
-		nodeMoving:setPosition(love.mouse.getX(), love.mouse.getY())
-		ApplyForces(SequentGraph)
-	elseif nodeMoving == nil then	
-		nodes = SequentGraph:getNodes()
-		for i=1, #nodes do			
-			x,y = nodes[i]:getPosition()
-			deslocamentoX = math.abs(love.mouse.getX() - xInitial)/10
-			deslocamentoY = math.abs(love.mouse.getY() - yInitial)/10
-			
-			if love.mouse.getX() < xInitial then
-				x = x - 5
-			elseif love.mouse.getX() > xInitial then
-				x = x + 5
-			end
-				
-			if love.mouse.getY() < yInitial then
-				y = y - 5
-			elseif love.mouse.getY() > yInitial then
-				y = y + 5				
-			end
-			
-			nodes[i]:setPosition(x, y)
-		end				
-	end
-end
-
---[[
 	Um algoritmo massa-mola + carca eletrica aplicado ao grafo.
 ]]--
-function ApplyForces(graph)
+local function ApplyForces(graph)
 
 	local nodes = graph:getNodes()
 	local edges = graph:getEdges()
@@ -344,6 +227,141 @@ function ApplyForces(graph)
 		end
 	until total_kinetic_energy < 5000
 	
+end
+
+--[[
+	Recive a graph and draws it on the screen.
+]]--
+local function drawGraph(graph)
+	local i = 1
+	
+	assert( getmetatable(graph) == Graph_Metatable , "drawGraph expects a graph.")
+	
+	local nodes = graph:getNodes()
+	local edges = graph:getEdges()
+	
+	-- Desenha os vertices
+	if nodes ~= nil then
+		while i <= #nodes do
+		
+			local node = nodes[i]
+			
+			love.graphics.setColor(0, 255, 0) -- Green circle		
+			love.graphics.circle("fill", node:getPositionX(), node:getPositionY(), raioDoVertice, 25)
+			love.graphics.setColor(0, 0, 0, 99) -- Black 99%
+			love.graphics.circle("line", node:getPositionX(), node:getPositionY(), 6)
+			love.graphics.print(node:getLabel(), node:getPositionX() - 10, node:getPositionY() - circleSeparation , 0, escalaLetraVertice, escalaLetraVertice )
+			i = i + 1
+		end
+	end
+	
+	i=1
+	-- Desenha as arestas
+	if edges ~= nil then
+		while i <= #edges do
+			
+			local edge = edges[i]
+
+			love.graphics.setColor(0, 0, 0, 99) -- Black 99%
+			local x1, y1 = edge:getOrigem():getPosition()
+			local x2, y2 = edge:getDestino():getPosition()
+			love.graphics.line(x1, y1, x2, y2)
+			
+			inclinacao = getInclinacaoAresta(edge)
+			--createDebugMessage(edge:getLabel() .." : ".. inclinacao)
+			--createDebugMessage("y1 = "..y1 .. "y2 = "..y2)		
+			love.graphics.print(edge:getLabel(), (x1 + x2)/2 , (y1 + y2)/2  , inclinacao, escalaLetraAresta, escalaLetraAresta )
+			
+			i = i + 1
+		end
+	end
+	
+	ApplyForces(SequentGraph)
+end
+
+--[[
+	Esta função verifica se algum vertice foi clicado pelo usuário. E retorna este vertice.
+]]--
+local function getNodeClicked()	
+	-- Varrer todo o grafo procurando o vertice que pode ter sido clicado.
+	nodes = SequentGraph:getNodes()	
+	for i=1, #nodes do			
+		x,y = nodes[i]:getPosition()
+		
+		if (love.mouse.getX() <= x + raioDoVertice) and (love.mouse.getX() >= x - raioDoVertice) then
+			if (love.mouse.getY() <= y + raioDoVertice) and (love.mouse.getY() >= y - raioDoVertice) then
+				-- Este vertice foi clicado
+				return nodes[i]
+			end
+		end
+	end
+	return nil	
+end
+
+--[[
+	Esta função é chamada pela love.draw.
+	A todo instante ela verifica se o botão esquerdo do mouse foi apertado. Em caso positivo 
+	conforme o botão continuar sendo pressionado e caso o clicke tenha sido em um vertice esta função
+	ira alterar a posição de desenho do vertice, criando o efeito do drag and drop.
+]]--
+local function dragNodeOrScreen()	
+	-- Chama o modulo de prova associado.
+	-- Verifica que o usuário quer expandir um vertice.
+	if love.mouse.isDown("r") then
+		nodeClicked = getNodeClicked()
+		
+		if nodeClicked ~= nil then
+			local newGraph = nil
+			newGraph = LogicModule.expandNode( SequentGraph, nodeClicked )
+			
+			if newGraph ~= nil then
+				-- Foi alterado pela expandNode e precisa ser redesenhado.
+				SequentGraph = prepareGraphToDraw(newGraph)
+			end
+		end
+		
+	-- Verifica se o usuário quer arrastar um vertice.
+	elseif love.mouse.isDown("l") and not isDragging then
+		nodeMoving = getNodeClicked()
+		isDragging = true
+		
+		xInitial = love.mouse.getX()
+		yInitial = love.mouse.getY()
+		-- Mudar o xInicial e o yInicial sempre que o mouse parar tb seria uma boa!
+		
+	-- Vericia se o usuário quer arrastar a tela	
+	elseif not love.mouse.isDown("l") then
+		isDragging = false
+		nodeMoving = "nao vazio"
+		
+	-- Usuario arrastando um vertice	
+	elseif nodeMoving ~= "nao vazio" and nodeMoving ~= nil then
+		nodeMoving:setPosition(love.mouse.getX(), love.mouse.getY())
+		ApplyForces(SequentGraph)
+		
+	-- Usuario arrastando toda a tela	
+	elseif nodeMoving == nil then	
+		nodes = SequentGraph:getNodes()
+		for i=1, #nodes do			
+			x,y = nodes[i]:getPosition()
+			deslocamentoX = math.abs(love.mouse.getX() - xInitial)/10
+			deslocamentoY = math.abs(love.mouse.getY() - yInitial)/10
+			
+			if love.mouse.getX() < xInitial then
+				x = x - 5
+			elseif love.mouse.getX() > xInitial then
+				x = x + 5
+			end
+				
+			if love.mouse.getY() < yInitial then
+				y = y - 5
+			elseif love.mouse.getY() > yInitial then
+				y = y + 5				
+			end
+			
+			nodes[i]:setPosition(x, y)
+		end				
+	end
 end
 
 
