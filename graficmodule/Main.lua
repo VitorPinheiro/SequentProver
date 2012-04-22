@@ -309,8 +309,40 @@ local function dragNodeOrScreen()
 	-- Verifica que o usuário quer expandir um vertice.
 	if love.mouse.isDown("r") then
 		nodeClicked = getNodeClicked()
-		
+
 		if nodeClicked ~= nil then
+			-- INICIO) PARA TESTAR, TIRAR! WARNING! VITOR 
+			createDebugMessage("ANTES: Arestas do grafo:")
+			local edgesAll = SequentGraph:getEdges()
+			for i=1, #edgesAll do
+				createDebugMessage(edgesAll[i]:getLabel())
+			end
+			
+			local edgesOut = nodeClicked:getEdgesOut()
+			createDebugMessage("ANTES Arestas saindo do vertice "..nodeClicked:getLabel().. " :")
+			for i=1, #edgesOut do
+				createDebugMessage(edgesOut[i]:getLabel())
+			end
+			
+			if edgesOut[1] ~= nil then
+				SequentGraph:removeEdge(edgesOut[1]) 
+			end
+			
+			local edgesOut = nodeClicked:getEdgesOut()
+			createDebugMessage("DEPOIS Arestas saindo do vertice "..nodeClicked:getLabel().. " :")
+			for i=1, #edgesOut do
+				createDebugMessage(edgesOut[i]:getLabel())
+			end
+			
+			createDebugMessage("DEPOIS: Arestas do grafo:")
+			local edgesAll = SequentGraph:getEdges()
+			for i=1, #edgesAll do
+				createDebugMessage(edgesAll[i]:getLabel())
+			end
+			
+			-- FIM) PARA TESTAR, TIRAR! WARNING! VITOR 
+			
+			
 			local newGraph = nil
 			newGraph = LogicModule.expandNode( SequentGraph, nodeClicked )
 			

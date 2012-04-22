@@ -169,3 +169,52 @@ function Graph:addEdge(edge)
 	end
 	self.edges[#self.edges +1] = edge
 end
+
+--- Remove an edge from the graph.
+-- @param The edge that you want to delete from the graph.
+-- @return True if the edge was deleted, False if the edge was not found, so it was not deleted.
+function Graph:removeEdge(edge)
+	assert( getmetatable(edge) == Edge_Metatable , "Graph:removeEdge expects a edge")
+	
+	-- atualizar lista de arestas do grafo
+	edges = self:getEdges()
+	
+	local isEdgeDeleted = false
+	local positionOfTheEdge = nil
+	local numEdges = #edges
+	for i=1, numEdges do
+		if edges[i]:getOrigem():getLabel() == edge:getOrigem():getLabel() and edges[i]:getDestino():getLabel() == edge:getDestino():getLabel()then
+			-- Se a origem e destino forem a mesma, entao achei a aresta pra deletar no grafo	
+
+			createDebugMessage("DELETANDO ARESTA: "..edges[i]:getLabel()) 
+			createDebugMessage("Num arestas ANTES = "..#edges )
+			
+			edges[i] = nil			
+			isEdgeDeleted = true
+			positionOfTheEdge = i			
+			
+			createDebugMessage("Num arestas DEPOIS = "..#edges )
+			-- aqui eu tenho que reorganizar a lista
+			for i = positionOfTheEdge, numEdges do
+				if i+1 > numEdges then
+					-- chegamos no final		
+					break -- ja organizou
+				end
+				
+				edges[i] = edges[i+1]
+				edges[i+1] = nil							
+			end
+			
+			-- atualizar os vertices que eles nao terao mas esta areta em suas listas
+			local origem = edge:getOrigem()
+			origem:deleteEdgeOut(edge)
+			
+			local destino = edge:getDestino()
+			destino:deleteEdgeIn(edge)					
+			
+			break
+		end
+	end
+	
+	return isEdgeDeleted
+end

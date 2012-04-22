@@ -8,11 +8,11 @@
 
 dofile "..\\logicmodule\\SequentGraph.lua"
 
--- Sequente alvo da operação
-local GoalSequentNode = nil
-
 -- Junta as funções que este modulo oferece como publicas.
 LogicModule = {}
+
+-- Sequente alvo da operação
+local GoalSequentNode = nil
 
 --[[ 
 	Defining the Metatable
@@ -22,24 +22,120 @@ LogicModule = {}
 --setmetatable( {}, LogicModule_Metatable )
 
 
--- Private functions
-local function expandNodeNot (graph, nodeOpNot)
-	createDebugMessage("expandNodeNot foi chamado para o sequente: "..GoalSequentNode:getLabel().. " e para o operador: "..nodeOpNot:getLabel())
+-------------------------------------------- Private functions --------------------------------------------
+
+local function verifySideOfSequent(originNode, targetNode)
+	-- recursivo até achar o targetNode
+	-- se achar retorna true
+	-- se nao achar retorna false
+	-- chama recursivamente para cada no destino a partir de originNode
+	
+	if originNode:getLabel() == targetNode:getLabel() then
+		createDebugMessage("Achei!!!!")
+		return true
+	end
+	
+	edgesOut = originNode:getEdgesOut()
+	
+	if edgesOut == nil then
+		return false
+	end
+	
+	local retValues = {}
+	
+	for i=1, #edgesOut do
+		retValues[i] = verifySideOfSequent(edgesOut[i]:getDestino(), targetNode)
+	end
+	
+	for i=1, #retValues do
+		if retValues[i] then
+			return true
+		end
+	end
+	
+	return false
+
+end
+
+
+--- Verifica o lado do operador em relaçao ao sequente que ele participa
+-- Essa funcao força que o grafo seja orientado e que a orientacao seja correta, se nao ele nao 
+-- funcionara corretamente.
+-- @param sequentNode The sequent node that the operatorNode participates
+-- @param operatorNode The operator node
+-- @return Return "Left" if the operatorNode is in the left side of the sequentNode
+--         Return "Right" if the operatorNode is in the right side of the sequentNode
+--         Return nil if the operatorNode is not part of the sequentNode
+local function verifySideOfOperator(sequentNode, operatorNode)
+	assert( operatorNode ~= nil , "verifySideOfOperator must be called only if operatorNode is not null.")
+	assert( getmetatable(operatorNode) == Node_Metatable , "verifySideOfOperator operatorNode must be a Node")
+	assert( sequentNode ~= nil , "verifySideOfOperator must be called only if sequentNode is not null.")	
+	assert( getmetatable(sequentNode) == Node_Metatable , "verifySideOfOperator sequentNode must be a Node")
+	
+	seqEdgesOutList = sequentNode:getEdgesOut()
+	if seqEdgesOutList == nil then
+		return nil
+	end
+	
+	createDebugMessage("Arestas que saem do "..sequentNode:getLabel()..": ")
+	for i=1, #seqEdgesOutList do
+		createDebugMessage(seqEdgesOutList[i]:getLabel())
+				
+		if seqEdgesOutList[i]:getLabel() == lblEdgeEsq then
+			-- verifica se ta na esquerda
+			createDebugMessage("Verificando esquerda sequente")
+			if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
+				return "Left"
+			end
+		end
+		
+		if seqEdgesOutList[i]:getLabel() == lblEdgeDir then
+			-- verifica se ta na direita, pq pode nao estar em nenhum dos lados. (Usuario clicou em um operador que nao faz parte do sequente que ele tinha clicado)
+			createDebugMessage("Verificando direita sequente")
+			if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
+				return "Right"
+			end
+		end		
+	end
+	
+	return nil 
+end
+
+local function expandNodeNot (graph, sequentNode, nodeOpNot)
+	createDebugMessage("expandNodeNot foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpNot:getLabel())
+		
+	--- Enviar todo o grafo apontado pelo not para o outro lado do sequente GoalSequentNode.	
+	-- 1) Verificar o lado que o not esta.
+	local sideOfOperator = verifySideOfOperator(sequentNode, nodeOpNot)
+	
+	if sideOfOperator == "Left" then
+		createDebugMessage(nodeOpNot:getLabel().." is in the left side of the ".. sequentNode:getLabel())
+		
+		
+	elseif sideOfOperator == "Right" then
+		createDebugMessage(nodeOpNot:getLabel().." is in the right side of the ".. sequentNode:getLabel())
+		
+		
+	elseif sideOfOperator == nil then
+		createDebugMessage("sideOfOperator is nil")
+		return nil -- nao atualizarei nada
+	end
+	
 	return graph
 end
 
-local function expandNodeAnd(graph, nodeOpAnd)
-	createDebugMessage("expandNodeAnd foi chamado para o sequente: "..GoalSequentNode:getLabel().. " e para o operador: "..nodeOpAnd:getLabel())
+local function expandNodeAnd(graph, sequentNode, nodeOpAnd)
+	createDebugMessage("expandNodeAnd foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpAnd:getLabel())
 	return graph
 end
 
-local function expandNodeOr(graph, nodeOpOr)
-	createDebugMessage("expandNodeOr foi chamado para o sequente: "..GoalSequentNode:getLabel().. " e para o operador: "..nodeOpOr:getLabel())
+local function expandNodeOr(graph, sequentNode, nodeOpOr)
+	createDebugMessage("expandNodeOr foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpOr:getLabel())
 	return graph
 end
 
-local function expandNodeImp(graph, nodeOpImp)
-	createDebugMessage("expandNodeImp foi chamado para o sequente: "..GoalSequentNode:getLabel().. " e para o operador: "..nodeOpImp:getLabel())
+local function expandNodeImp(graph, sequentNode, nodeOpImp)
+	createDebugMessage("expandNodeImp foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpImp:getLabel())
 	return graph
 end
 
@@ -128,7 +224,7 @@ local function verifyGraphNodeOperator(node, operatorIdentifier)
 	
 	
 	if tonumber(numberPart) ~= nil and idPart == operatorIdentifier then 
-		createDebugMessage("RETORNOU TRUE!")
+		--createDebugMessage("RETORNOU TRUE!")
 		return operatorOfNode
 	else
 		return nil
@@ -157,19 +253,20 @@ function LogicModule.expandNode( graph, targetNode )
 
 	createDebugMessage("GoalSequentNode esta setado! = "..GoalSequentNode:getLabel())
 	createDebugMessage("Vamos ver se vc clicou em um operador.")
+	createDebugMessage("targetNode = "..targetNode:getLabel())
 	
 	-- Verificar se o targetNode é um operador
 	local newGraph = nil
 	
 	if verifyGraphNodeOperator(targetNode, opAnd.graph) ~= nil then		
-		newGraph = expandNodeAnd(graph, targetNode)
+		newGraph = expandNodeAnd(graph, GoalSequentNode, targetNode)
 	elseif verifyGraphNodeOperator(targetNode, opOr.graph) ~= nil then
-		newGraph = expandNodeOr(graph, targetNode)
+		newGraph = expandNodeOr(graph, GoalSequentNode, targetNode)
 	elseif verifyGraphNodeOperator(targetNode, opImp.graph) ~= nil then
-		newGraph = expandNodeImp(graph, targetNode)
+		newGraph = expandNodeImp(graph, GoalSequentNode, targetNode)
 	elseif verifyGraphNodeOperator(targetNode, opNot.graph) ~= nil then	
 		createDebugMessage("Eh o operador: "..targetNode:getLabel())
-		newGraph = expandNodeNot(graph, targetNode)
+		newGraph = expandNodeNot(graph, GoalSequentNode, targetNode)
 	end
 	
 	if newGraph ~= nil then
@@ -179,6 +276,8 @@ function LogicModule.expandNode( graph, targetNode )
 	else
 		-- Nao foi um operador, ele clicou fora para cancelar o sequente escolhido
 		createDebugMessage("Sequente escolhido cancelado. Por favor escolha um sequente.")
+		-- É possivel que ele caia aqui tb se quando ele mandou expandir escolheu um operador que
+		-- nao fazia parte do sequente escolhido. Dai entao ele cancela a escolha do sequente.
 		GoalSequentNode = nil			
 		return nil -- significa que nao alterei o grafo, só para a app grafica nao ter que redesenhar
 	end

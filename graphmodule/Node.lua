@@ -150,3 +150,147 @@ end
 function Node:getPositionY()
 	return self.y
 end
+
+--- Insert a edge in the list of the edges that this node have arriving at him
+function Node:setEdgeIn(edgeIn)
+	assert( getmetatable(edgeIn) == Edge_Metatable , "Node:setEdgeIn expects a edge")
+	
+	if self.edgesIn == nil then
+		self.edgesIn = {}
+	end
+	
+	self.edgesIn[#self.edgesIn+1] = edgeIn
+end
+
+--- Insert a list of edges in the list of the edges that this node have arriving at him
+function Node:setEdgesIn(edgesIn)
+	if edgesIn == nil then
+		return
+	end
+	
+	if #edgesIn == 0 then
+		return
+	end
+
+	for i=1, #edgesIn do
+		self:setEdgeIn(edgesIn[i])
+	end
+	
+end
+
+--- Insert a edge in the list of the edges that this node have comming out of him
+function Node:setEdgeOut(edgeOut)
+	assert( getmetatable(edgeOut) == Edge_Metatable , "Node:setEdgeIn expects a edge")
+	
+	if self.edgesOut == nil then
+		self.edgesOut = {}
+	end
+	
+	self.edgesOut[#self.edgesOut+1] = edgeOut
+end
+
+--- Insert a list of edges in the list of the edges that this node have comming out of him
+function Node:setEdgesOut(edgesOut)
+	if edgesOut == nil then
+		return
+	end
+	
+	if #edgesOut == 0 then
+		return
+	end
+
+	for i=1, #edgesOut do
+		self:setEdgeOut(edgesOut[i])
+	end
+	
+end
+
+--- Returns all the edges that comes out of this node.
+function Node:getEdgesOut()
+	return self.edgesOut
+end
+
+--- Returns all the edges that arrives at this node.
+function Node:getEdgesIn()
+	return self.edgesIn
+end
+
+
+function Node:deleteEdgeOut(edge)
+	local edgesOut = self:getEdgesOut()
+
+	local isEdgeDeleted = false
+	local positionOfTheEdge = nil
+	local numEdges = #edges
+	
+	for i=1, #edgesOut do
+		if edgesOut[i]:getOrigem():getLabel() == edge:getOrigem():getLabel() and edgesOut[i]:getDestino():getLabel() == edge:getDestino():getLabel()then
+		-- achei a aresta
+			edgesOut[i] = nil			
+			isEdgeDeleted = true
+			positionOfTheEdge = i
+			
+			if i == numEdges then
+				-- deletei do final, posso retornar
+				return true
+			end
+			
+			break			
+		end
+	end
+	
+	if isEdgeDeleted then
+		-- nao é do final
+		for i = positionOfTheEdge, #edgesOut do
+			edgesOut[i] = edgesOut[i+1]
+			edgesOut[i+1] = nil
+			
+			if i+1 == #edgesOut then
+				-- chegamos no final
+				return true
+			end
+		end
+	end
+	
+	return false
+end
+
+
+function Node:deleteEdgeIn(edge)
+	local edgesIn = self:getEdgesIn()
+
+	local isEdgeDeleted = false
+	local positionOfTheEdge = nil
+	local numEdges = #edges
+	
+	for i=1, #edgesIn do
+		if edgesIn[i]:getOrigem():getLabel() == edge:getOrigem():getLabel() and edgesIn[i]:getDestino():getLabel() == edge:getDestino():getLabel()then
+		-- achei a aresta
+			edgesIn[i] = nil			
+			isEdgeDeleted = true
+			positionOfTheEdge = i
+			
+			if i == numEdges then
+				-- deletei do final, posso retornar
+				return true
+			end
+			
+			break			
+		end
+	end
+	
+	if isEdgeDeleted then
+		-- nao é do final
+		for i = positionOfTheEdge, #edgesIn do
+			edgesIn[i] = edgesIn[i+1]
+			edgesIn[i+1] = nil
+			
+			if i+1 == #edgesIn then
+				-- chegamos no final
+				return true
+			end
+		end
+	end
+	
+	return false
+end

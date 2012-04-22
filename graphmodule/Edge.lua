@@ -5,7 +5,6 @@
 	Author: Vitor
 ]]--
 
-
 --[[ 
 	Defining the edge
 ]]--
@@ -26,8 +25,13 @@ function Edge:new (label, origem, destino)
 	
 	local ini = {}
 	ini = {label = label, origem = origem, destino = destino, info = {}}
+	
+	local newEdge = setmetatable( ini, Edge_Metatable )
+	
+	origem:setEdgeOut(newEdge)
+	destino:setEdgeIn(newEdge)
 		
-	return setmetatable( ini, Edge_Metatable )
+	return newEdge
 end
 
 --[[
