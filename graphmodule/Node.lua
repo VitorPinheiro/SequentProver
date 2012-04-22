@@ -165,6 +165,7 @@ end
 --- Insert a list of edges in the list of the edges that this node have arriving at him
 function Node:setEdgesIn(edgesIn)
 	if edgesIn == nil then
+		self.edgesIn = nil -- apago a lista
 		return
 	end
 	
@@ -192,6 +193,7 @@ end
 --- Insert a list of edges in the list of the edges that this node have comming out of him
 function Node:setEdgesOut(edgesOut)
 	if edgesOut == nil then
+		self.edgesOut = nil -- apago a lista
 		return
 	end
 	
@@ -215,6 +217,35 @@ function Node:getEdgesIn()
 	return self.edgesIn
 end
 
+function Node:getEdgeIn(label)
+	-- retorna a primeira aresta da lista de arestas que entram do vertice que tenha o label desejado
+	if self.edgesIn == nil then
+		return nil
+	end
+	
+	for i=1, #self.edgesIn do
+		if self.edgesIn[i]:getLabel() == label then
+			return self.edgesIn[i]
+		end
+	end
+	
+	return nil
+end
+
+function Node:getEdgeOut(label)
+	-- retorna a primeira aresta da lista de arestas que saem do vertice que tenha o label desejado
+	if self.edgesOut == nil then
+		return nil
+	end
+	
+	for i=1, #self.edgesOut do
+		if self.edgesOut[i]:getLabel() == label then
+			return self.edgesOut[i]
+		end
+	end
+	
+	return nil
+end
 
 function Node:deleteEdgeOut(edge)
 	local edgesOut = self:getEdgesOut()

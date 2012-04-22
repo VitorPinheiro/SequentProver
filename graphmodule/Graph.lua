@@ -195,14 +195,14 @@ function Graph:removeEdge(edge)
 			
 			createDebugMessage("Num arestas DEPOIS = "..#edges )
 			-- aqui eu tenho que reorganizar a lista
-			for i = positionOfTheEdge, numEdges do
-				if i+1 > numEdges then
+			for j = positionOfTheEdge, numEdges do
+				if j+1 > numEdges then
 					-- chegamos no final		
 					break -- ja organizou
 				end
 				
-				edges[i] = edges[i+1]
-				edges[i+1] = nil							
+				edges[j] = edges[j+1]
+				edges[j+1] = nil							
 			end
 			
 			-- atualizar os vertices que eles nao terao mas esta areta em suas listas
@@ -218,3 +218,49 @@ function Graph:removeEdge(edge)
 	
 	return isEdgeDeleted
 end
+
+function Graph:removeNode(node)
+	assert( getmetatable(node) == Node_Metatable , "Graph:removeNode expects a Node")
+	
+	local nodeList = self:getNodes()
+	if nodeList == nil then
+		return false -- nao deletou nada
+	end
+	
+	local numNodes = #nodeList	
+	
+	local isNodeDeleted = false
+	for i=1, numNodes do
+		if nodeList[i]:getLabel() == node:getLabel() then
+		
+			local edgesIn = nodeList[i]:getEdgesIn()
+			local tamEdgesIn = #edgesIn
+			for j=1, tamEdgesIn do
+				self:removeEdge(edgesIn[j])
+			end			
+		
+			local edgesOut = nodeList[i]:getEdgesOut()
+			local tamEdgesOut = #edgesOut
+			for j=1, tamEdgesOut do
+				self:removeEdge(edgesOut[j])
+			end			
+			
+			nodeList[i] = nil
+			isNodeDeleted = true
+			
+			-- organiza a lista
+			for j = i, numNodes do
+				if j+1 > numNodes then	
+					break -- ja organizou
+				end
+				
+				nodeList[j] = nodeList[j+1]
+				nodeList[j+1] = nil							
+			end
+			break
+		end
+	end
+	
+	return isNodeDeleted
+end
+

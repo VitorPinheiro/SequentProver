@@ -311,7 +311,9 @@ local function dragNodeOrScreen()
 		nodeClicked = getNodeClicked()
 
 		if nodeClicked ~= nil then
+
 			-- INICIO) PARA TESTAR, TIRAR! WARNING! VITOR 
+			--[[
 			createDebugMessage("ANTES: Arestas do grafo:")
 			local edgesAll = SequentGraph:getEdges()
 			for i=1, #edgesAll do
@@ -339,7 +341,7 @@ local function dragNodeOrScreen()
 			for i=1, #edgesAll do
 				createDebugMessage(edgesAll[i]:getLabel())
 			end
-			
+			]]--
 			-- FIM) PARA TESTAR, TIRAR! WARNING! VITOR 
 			
 			
@@ -353,7 +355,33 @@ local function dragNodeOrScreen()
 		end
 		
 	-- Verifica se o usuário quer arrastar um vertice.
-	elseif love.mouse.isDown("l") and not isDragging then
+	elseif love.mouse.isDown("l") and not isDragging then		
+	
+		-- INICIO WARNING - SOH PRA TESTAR A REMOCAO DE UM NODE!!! VITOR
+		--[[nodeTEST = getNodeClicked()
+		if nodeMoving ~= nil then
+			
+			createDebugMessage("ANTES: Vertices do grafo:")
+			local nodesAll1 = SequentGraph:getNodes()
+			for i=1, #nodesAll1 do
+				createDebugMessage(nodesAll1[i]:getLabel())
+			end			
+			
+			if getmetatable(nodeTEST) == Node_Metatable then
+				SequentGraph:removeNode(nodeTEST)
+			end
+			
+			
+			createDebugMessage("DEPOIS: Vertices do grafo:")
+			local nodesAll2 = SequentGraph:getNodes()
+			for i=1, #nodesAll2 do
+				createDebugMessage(nodesAll2[i]:getLabel())
+			end				
+			
+		end]]--
+		-- FIM WARNING - SOH PRA TESTAR A REMOCAO DE UM NODE!!! VITOR	
+	
+	
 		nodeMoving = getNodeClicked()
 		isDragging = true
 		
@@ -362,7 +390,7 @@ local function dragNodeOrScreen()
 		-- Mudar o xInicial e o yInicial sempre que o mouse parar tb seria uma boa!
 		
 	-- Vericia se o usuário quer arrastar a tela	
-	elseif not love.mouse.isDown("l") then
+	elseif not love.mouse.isDown("l") then				
 		isDragging = false
 		nodeMoving = "nao vazio"
 		

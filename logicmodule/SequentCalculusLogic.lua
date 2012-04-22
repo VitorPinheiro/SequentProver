@@ -111,6 +111,32 @@ local function expandNodeNot (graph, sequentNode, nodeOpNot)
 	if sideOfOperator == "Left" then
 		createDebugMessage(nodeOpNot:getLabel().." is in the left side of the ".. sequentNode:getLabel())
 		
+		-- 1) Verificar se esse operador eh alcancavel pelo no dX. se nao for eh pq tem um operador mais acima dele,
+		-- e o usuario nao pode expandir.
+		local nodeEsq = sequentNode:getEdgeOut(lblEdgeEsq):getDestino()
+		
+		local edgesOut = nodeEsq:getEdgesOut()
+		local isNodeOpNotFound = false
+		for i=1, #edgesOut do
+			
+			if edgesOut[i]:getDestino():getLabel() == nodeOpNot:getLabel() then
+				isNodeOpNotFound = true
+				--graph:removeEdge(edgesOut[i]) -- ja tiro a aresta
+			end
+		end
+		
+		if not isNodeOpNotFound then
+			-- o operador escolhido esta dentro de um outro operador e por isso nao pode ser expandido
+			return nil -- nao atualizarei nada			
+		end
+		
+		-- 2) Ir na direita do sequente no vertice "dX" e adicionar uma aresta comecando dele para o operador nodeOpNot
+		local nodeDir = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
+		
+		newEdge = SequentEdge:new("", nodeDir, nodeOpNot:getEdgeOut(lblCarnality..lblUnary):getDestino()) -- liguei do lado novo
+		graph:addEdge(newEdge)
+		
+		graph:removeNode(nodeOpNot) -- deleta o vertice e as arestas que chegam nele e que saem
 		
 	elseif sideOfOperator == "Right" then
 		createDebugMessage(nodeOpNot:getLabel().." is in the right side of the ".. sequentNode:getLabel())
