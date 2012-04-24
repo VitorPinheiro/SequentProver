@@ -227,13 +227,73 @@ local function expandNodeNot (graph, sequentNode, nodeOpNot)
 	return graph
 end
 
+local function expandNodeAndRight(graph, sequentNode, nodeOpAnd)
+
+	createNewSequent(graph, sequentNode)
+	createNewSequent(graph, sequentNode)
+	
+	local newSequents = {}
+	
+	local edgesOutSeq = sequentNode:getEdgesOut()		
+	
+	j=1
+	for i=1, #edgesOutSeq do
+		if edgesOutSeq[i]:getLabel() == lblEdgeDeducao then
+			newSequents[j] = edgesOutSeq[i]:getDestino()			
+			j = j + 1
+			if #newSequents == 2 then
+				break
+			end
+		end
+	end
+	
+	assert( #newSequents == 2, "expandNodeAndRight: Must have two new sequents to perform and right expansion. There is only "..#newSequents.." new sequents." )
+	
+	local nodeRight1 = newSequents[1]:getEdgeOut(lblEdgeDir):getDestino()
+	local nodeRight2 = newSequents[2]:getEdgeOut(lblEdgeDir):getDestino()
+	
+	-- Remover aresta que sai de um dos sequentes
+	local edgesOutRightTam = #(nodeRight1:getEdgesOut()) 	
+	local edgesOutRightList = nodeRight1:getEdgesOut()
+	for i=1, edgesOutRightTam do
+		if edgesOutRightList[i]:getDestino():getLabel() == nodeOpAnd:getLabel() then
+			graph:removeEdge(edgesOutRightList[i])									
+			break
+		end				
+	end
+
+	-- Remover aresta que sai do outro sequente
+	edgesOutRightTam = #(nodeRight2:getEdgesOut()) 	
+	edgesOutRightList = nodeRight2:getEdgesOut()
+	for i=1, edgesOutRightTam do
+		if edgesOutRightList[i]:getDestino():getLabel() == nodeOpAnd:getLabel() then
+			graph:removeEdge(edgesOutRightList[i])									
+			break
+		end				
+	end	
+	
+	-- Inserir lados do and em cada um dos sequentes novos
+	local nodeOpEdges = nodeOpAnd:getEdgesOut()
+			
+	assert( #nodeOpEdges == 2, "expandNodeAndRight: Operator and do not have two edges." )
+				
+	local numEdge = #(nodeRight1:getEdgesOut())
+	local newEdge1 = SequentEdge:new(""..numEdge, nodeRight1, nodeOpEdges[1]:getDestino())
+	numEdge = #(nodeRight2:getEdgesOut())
+	local newEdge2 = SequentEdge:new(""..numEdge, nodeRight2, nodeOpEdges[2]:getDestino())
+	graph:addEdge(newEdge1)
+	graph:addEdge(newEdge2)
+	
+	return graph
+
+end
+
 local function expandNodeAndLeft(graph, sequentNode, nodeOpAnd)
 	-- vira virgula
 	createNewSequent(graph, sequentNode)
 	
 	local newSequentNode = sequentNode:getEdgeOut(lblEdgeDeducao):getDestino()
 	
-	local nodeRight = newSequentNode:getEdgeOut(lblEdgeDir):getDestino()
 	local nodeLeft = newSequentNode:getEdgeOut(lblEdgeEsq):getDestino()
 	
 	local edgesOutLeftTam = #(nodeLeft:getEdgesOut()) 
@@ -278,13 +338,180 @@ local function expandNodeAnd(graph, sequentNode, nodeOpAnd)
 	return graph
 end
 
+local function expandNodeOrRight(graph, sequentNode, nodeOpOr)
+	-- vira virgula
+	createNewSequent(graph, sequentNode)
+	
+	local newSequentNode = sequentNode:getEdgeOut(lblEdgeDeducao):getDestino()
+	
+	local nodeRight = newSequentNode:getEdgeOut(lblEdgeDir):getDestino()
+	
+	local edgesOutRightTam = #(nodeRight:getEdgesOut()) 
+	
+	local edgesOutRightList = nodeRight:getEdgesOut()
+	for i=1, edgesOutRightTam do
+		if edgesOutRightList[i]:getDestino():getLabel() == nodeOpOr:getLabel() then
+			graph:removeEdge(edgesOutRightList[i])
+			
+			local nodeOpEdges = nodeOpOr:getEdgesOut()
+			for j=1, #nodeOpEdges do
+				local numEdge = #(nodeRight:getEdgesOut())
+				local newEdge1 = SequentEdge:new(""..numEdge, nodeRight, nodeOpEdges[j]:getDestino())
+				graph:addEdge(newEdge1)
+			end
+			
+			break
+		end				
+	end
+
+	return graph
+end
+
+local function expandNodeOrLeft(graph, sequentNode, nodeOpOr)
+
+	createNewSequent(graph, sequentNode)
+	createNewSequent(graph, sequentNode)
+	
+	local newSequents = {}
+	
+	local edgesOutSeq = sequentNode:getEdgesOut()		
+	
+	j=1
+	for i=1, #edgesOutSeq do
+		if edgesOutSeq[i]:getLabel() == lblEdgeDeducao then
+			newSequents[j] = edgesOutSeq[i]:getDestino()			
+			j = j + 1
+			if #newSequents == 2 then
+				break
+			end
+		end
+	end
+	
+	assert( #newSequents == 2, "expandNodeOrLeft: Must have two new sequents to perform the expansion. There is only "..#newSequents.." new sequents." )
+	
+	local nodeLeft1 = newSequents[1]:getEdgeOut(lblEdgeEsq):getDestino()
+	local nodeLeft2 = newSequents[2]:getEdgeOut(lblEdgeEsq):getDestino()
+	
+	-- Remover aresta que sai de um dos sequentes
+	local edgesOutLeftTam = #(nodeLeft1:getEdgesOut()) 	
+	local edgesOutLeftList = nodeLeft1:getEdgesOut()
+	for i=1, edgesOutLeftTam do
+		if edgesOutLeftList[i]:getDestino():getLabel() == nodeOpOr:getLabel() then
+			graph:removeEdge(edgesOutLeftList[i])									
+			break
+		end				
+	end
+
+	-- Remover aresta que sai do outro sequente
+	edgesOutLeftTam = #(nodeLeft2:getEdgesOut()) 	
+	edgesOutLeftList = nodeLeft2:getEdgesOut()
+	for i=1, edgesOutLeftTam do
+		if edgesOutLeftList[i]:getDestino():getLabel() == nodeOpOr:getLabel() then
+			graph:removeEdge(edgesOutLeftList[i])									
+			break
+		end				
+	end	
+	
+	-- Inserir lados do or em cada um dos sequentes novos
+	local nodeOpEdges = nodeOpOr:getEdgesOut()
+			
+	assert( #nodeOpEdges == 2, "expandNodeOrLeft: Operator or do not have two edges." )
+				
+	local numEdge = #(nodeLeft1:getEdgesOut())
+	local newEdge1 = SequentEdge:new(""..numEdge, nodeLeft1, nodeOpEdges[1]:getDestino())
+	numEdge = #(nodeLeft2:getEdgesOut())
+	local newEdge2 = SequentEdge:new(""..numEdge, nodeLeft2, nodeOpEdges[2]:getDestino())
+	graph:addEdge(newEdge1)
+	graph:addEdge(newEdge2)
+	
+	return graph
+
+end
+
 local function expandNodeOr(graph, sequentNode, nodeOpOr)
 	createDebugMessage("expandNodeOr foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpOr:getLabel())
+
+	local sideOfOperator = verifySideOfOperator(sequentNode, nodeOpOr)	
+	
+	if sideOfOperator == leftSide then
+		createDebugMessage(nodeOpOr:getLabel().." is in the left side of the ".. sequentNode:getLabel())
+		expandNodeOrLeft(graph, sequentNode, nodeOpOr)
+	elseif sideOfOperator == rightSide then
+		createDebugMessage(nodeOpOr:getLabel().." is in the right side of the ".. sequentNode:getLabel())
+		expandNodeOrRight(graph, sequentNode, nodeOpOr)
+	elseif sideOfOperator == nil then
+		createDebugMessage("sideOfOperator is nil")
+		return nil -- nao atualizarei nada
+	end		
 	
 	return graph
 end
 
 local function expandNodeImpLeft(graph, sequentNode, nodeOpImp)
+	
+	createNewSequent(graph, sequentNode)
+	createNewSequent(graph, sequentNode)
+	
+	local newSequents = {}
+	
+	local edgesOutSeq = sequentNode:getEdgesOut()		
+	
+	j=1
+	for i=1, #edgesOutSeq do
+		if edgesOutSeq[i]:getLabel() == lblEdgeDeducao then
+			newSequents[j] = edgesOutSeq[i]:getDestino()			
+			j = j + 1
+			if #newSequents == 2 then
+				break
+			end
+		end
+	end
+	
+	assert( #newSequents == 2, "expandNodeImpLeft: Must have two new sequents to perform the expansion. There is only "..#newSequents.." new sequents." )
+	
+	local nodeLeft1 = newSequents[1]:getEdgeOut(lblEdgeEsq):getDestino()
+	local nodeRight2 = newSequents[2]:getEdgeOut(lblEdgeDir):getDestino()
+	
+	-- Remover aresta que sai de um dos sequentes
+	local edgesOutLeftTam = #(nodeLeft1:getEdgesOut()) 	
+	local edgesOutLeftList = nodeLeft1:getEdgesOut()
+	for i=1, edgesOutLeftTam do
+		if edgesOutLeftList[i]:getDestino():getLabel() == nodeOpImp:getLabel() then
+			graph:removeEdge(edgesOutLeftList[i])									
+			break
+		end				
+	end
+
+	-- Remover aresta que sai do outro sequente (o 2)
+	edgesOutLeftTam = #(nodeRight2:getEdgesOut()) 	
+	edgesOutLeftList = nodeRight2:getEdgesOut()
+	for i=1, edgesOutLeftTam do
+		graph:removeEdge(edgesOutLeftList[i])									
+	end	
+	
+	-- Retirar a implicacao da esquerda do sequente2
+	local nodeLeft2 = newSequents[2]:getEdgeOut(lblEdgeEsq):getDestino()
+	edgesOutLeftTam = #(nodeLeft2:getEdgesOut()) 	
+	edgesOutLeftList = nodeLeft2:getEdgesOut()
+	for i=1, edgesOutLeftTam do
+		if edgesOutLeftList[i]:getDestino():getLabel() == nodeOpImp:getLabel() then
+			graph:removeEdge(edgesOutLeftList[i])									
+			break
+		end				
+	end	
+	
+	-- Inserir lados do or em cada um dos sequentes novos
+	local nodeRightSideOfImply = nodeOpImp:getEdgeOut(lblEdgeDir):getDestino()
+	local nodeLeftSideOfImply = nodeOpImp:getEdgeOut(lblEdgeEsq):getDestino()
+				
+	local numEdge = #(nodeLeft1:getEdgesOut())
+	local newEdge1 = SequentEdge:new(""..numEdge, nodeLeft1, nodeRightSideOfImply)
+	numEdge = #(nodeRight2:getEdgesOut())
+	local newEdge2 = SequentEdge:new(""..numEdge, nodeRight2, nodeLeftSideOfImply)
+	graph:addEdge(newEdge1)
+	graph:addEdge(newEdge2)
+	
+	return graph
 	
 end
 
@@ -298,15 +525,6 @@ local function expandNodeImpRight(graph, sequentNode, nodeOpImp)
 	local nodeRight = newSequentNode:getEdgeOut(lblEdgeDir):getDestino()
 	local nodeLeft = newSequentNode:getEdgeOut(lblEdgeEsq):getDestino()
 	
-	local edgesOutLeft = #(nodeLeft:getEdgesOut()) 
-	local edgesOutRight = #(nodeRight:getEdgesOut()) 
-	
-	local newEdge1 = SequentEdge:new(""..edgesOutLeft, nodeLeft, nodeOpImp:getEdgeOut(lblEdgeEsq):getDestino()) -- jogo a parte da esquerda da implicacao pra esquerda do sequente	
-	local newEdge2 = SequentEdge:new(""..edgesOutRight, nodeRight, nodeOpImp:getEdgeOut(lblEdgeDir):getDestino())
-	
-	graph:addEdge(newEdge1)
-	graph:addEdge(newEdge2)	
-	
 	local listEdgesOut = nodeRight:getEdgesOut()
 	for i=1, #listEdgesOut do
 		if listEdgesOut[i]:getDestino():getLabel() == nodeOpImp:getLabel() then
@@ -314,6 +532,15 @@ local function expandNodeImpRight(graph, sequentNode, nodeOpImp)
 			break
 		end
 	end
+	
+	local edgesOutLeft = #(nodeLeft:getEdgesOut()) 
+	local edgesOutRight = #(nodeRight:getEdgesOut()) 
+	
+	local newEdge1 = SequentEdge:new(""..edgesOutLeft, nodeLeft, nodeOpImp:getEdgeOut(lblEdgeEsq):getDestino()) -- jogo a parte da esquerda da implicacao pra esquerda do sequente	
+	local newEdge2 = SequentEdge:new(""..edgesOutRight, nodeRight, nodeOpImp:getEdgeOut(lblEdgeDir):getDestino())
+	
+	graph:addEdge(newEdge1)
+	graph:addEdge(newEdge2)		
 	
 	return graph
 	
@@ -338,8 +565,39 @@ local function expandNodeImp(graph, sequentNode, nodeOpImp)
 	return graph
 end
 
-
 local function createGraphImplyLeft()
+	local SequentGraph = Graph:new ()
+		
+	NodeGG = SequentNode:new(lblNodeGG)
+	NodeSeq = SequentNode:new(opSeq.graph)
+	NodeEsq = SequentNode:new(lblNodeEsq)
+	NodeDir = SequentNode:new(lblNodeDir)
+		
+	NodeNot0 = SequentNode:new(opNot.graph)
+	NodeF = SequentNode:new('F')
+	NodeImp0 = SequentNode:new(opImp.graph)
+	NodeA = SequentNode:new('A')
+
+	Edge1 = SequentEdge:new(lblEdgeGoal, NodeGG, NodeSeq)
+	Edge2 = SequentEdge:new(lblEdgeEsq, NodeSeq, NodeEsq)
+	Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
+	Edge4 = SequentEdge:new('', NodeDir, NodeNot0)
+	Edge5 = SequentEdge:new('', NodeEsq, NodeImp0)
+	Edge7 = SequentEdge:new(lblCarnality..lblUnary, NodeNot0, NodeF)
+	Edge8 = SequentEdge:new(lblEdgeEsq , NodeImp0, NodeF)
+	Edge9 = SequentEdge:new(lblEdgeDir , NodeImp0, NodeA)
+	
+	-- ~F SEQ (F -> A)
+	nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeNot0, NodeImp0, NodeF, NodeA}
+	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge7, Edge8, Edge9}	
+	
+	SequentGraph:addNodes(nodes)
+	SequentGraph:addEdges(edges)
+	
+	return SequentGraph
+end
+
+local function createGraphImplyRight()
 
 	local SequentGraph = Graph:new ()
 		
@@ -362,25 +620,13 @@ local function createGraphImplyLeft()
 	Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
 	Edge4 = SequentEdge:new('', NodeEsq, NodeNot0)
 	Edge5 = SequentEdge:new('', NodeDir, NodeImp0)
-	Edge6 = SequentEdge:new(lblCarnality..lblUnary, NodeNot0, NodeF) -- ~F SEQ ~F 
-	--Edge6 = SequentEdge:new(lblCarnality..lblUnary, NodeNot0, NodeAnd0) -- ~F SEQ ~(F ^ A)
+	Edge7 = SequentEdge:new(lblCarnality..lblUnary, NodeNot0, NodeF)
 	Edge8 = SequentEdge:new(lblEdgeEsq , NodeImp0, NodeF)
 	Edge9 = SequentEdge:new(lblEdgeDir , NodeImp0, NodeA)
-	--Edge8 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeF) -- ~F SEQ ~(F ^ A)
-	--Edge9 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeA) -- ~F SEQ ~(F ^ A)
-	Edge7 = SequentEdge:new(lblCarnality..lblUnary, NodeNot0, NodeF)
 	
-	-- ~F SEQ ~F
-	--nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeNot0, NodeNot1, NodeF}
-	--edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7}
-	
-	-- ~F SEQ ~(F ^ A)
-	--nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeNot0, NodeNot1, NodeF, NodeAnd0, NodeA}
-	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7, Edge8, Edge9}
-
 	-- ~F SEQ (F -> A)
 	nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeNot0, NodeImp0, NodeF, NodeA}
-	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7, Edge8, Edge9}	
+	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge7, Edge8, Edge9}	
 	
 	SequentGraph:addNodes(nodes)
 	SequentGraph:addEdges(edges)
@@ -421,6 +667,73 @@ local function createNotGraph()
 
 end
 
+local function createOrGraphRight()
+
+	local SequentGraph = Graph:new ()
+		
+	NodeGG = SequentNode:new(lblNodeGG)
+	NodeSeq = SequentNode:new(opSeq.graph)
+	NodeEsq = SequentNode:new(lblNodeEsq)
+	NodeDir = SequentNode:new(lblNodeDir)
+
+	NodeF = SequentNode:new('F')
+	NodeB = SequentNode:new('B')
+	NodeOr0 = SequentNode:new(opOr.graph) 
+	NodeA = SequentNode:new('A') 
+
+	
+	Edge1 = SequentEdge:new(lblEdgeGoal, NodeGG, NodeSeq)
+	Edge2 = SequentEdge:new(lblEdgeEsq, NodeSeq, NodeEsq)
+	Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
+	Edge4 = SequentEdge:new('', NodeEsq, NodeF)
+	Edge5 = SequentEdge:new('', NodeDir, NodeOr0)	
+	Edge6 = SequentEdge:new(lblCarnality..lblBinary, NodeOr0, NodeB)
+	Edge7 = SequentEdge:new(lblCarnality..lblBinary, NodeOr0, NodeA) 
+
+	-- F SEQ (B ^ A)
+	nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeB, NodeF, NodeOr0, NodeA}
+	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7}
+	
+	SequentGraph:addNodes(nodes)
+	SequentGraph:addEdges(edges)
+	
+	return SequentGraph
+end
+
+local function createOrGraphLeft()
+
+	local SequentGraph = Graph:new ()
+		
+	NodeGG = SequentNode:new(lblNodeGG)
+	NodeSeq = SequentNode:new(opSeq.graph)
+	NodeEsq = SequentNode:new(lblNodeEsq)
+	NodeDir = SequentNode:new(lblNodeDir)
+
+	NodeF = SequentNode:new('F')
+	NodeB = SequentNode:new('B')
+	NodeOr0 = SequentNode:new(opOr.graph) 
+	NodeA = SequentNode:new('A') 
+
+	
+	Edge1 = SequentEdge:new(lblEdgeGoal, NodeGG, NodeSeq)
+	Edge2 = SequentEdge:new(lblEdgeEsq, NodeSeq, NodeEsq)
+	Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
+	Edge4 = SequentEdge:new('', NodeDir, NodeF)
+	Edge5 = SequentEdge:new('', NodeEsq, NodeOr0)	
+	Edge6 = SequentEdge:new(lblCarnality..lblBinary, NodeOr0, NodeB)
+	Edge7 = SequentEdge:new(lblCarnality..lblBinary, NodeOr0, NodeA) 
+
+	-- F SEQ (B ^ A)
+	nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeB, NodeF, NodeOr0, NodeA}
+	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7}
+	
+	SequentGraph:addNodes(nodes)
+	SequentGraph:addEdges(edges)
+	
+	return SequentGraph
+	
+end
+
 local function createAndGraphLeft()
 
 	local SequentGraph = Graph:new ()
@@ -441,6 +754,40 @@ local function createAndGraphLeft()
 	Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
 	Edge4 = SequentEdge:new('', NodeDir, NodeF)
 	Edge5 = SequentEdge:new('', NodeEsq, NodeAnd0)	
+	Edge6 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeB)
+	Edge7 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeA) 
+
+	-- F SEQ (B ^ A)
+	nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeB, NodeF, NodeAnd0, NodeA}
+	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7}
+	
+	SequentGraph:addNodes(nodes)
+	SequentGraph:addEdges(edges)
+	
+	return SequentGraph
+
+end
+
+local function createAndGraphRight()
+
+	local SequentGraph = Graph:new ()
+		
+	NodeGG = SequentNode:new(lblNodeGG)
+	NodeSeq = SequentNode:new(opSeq.graph)
+	NodeEsq = SequentNode:new(lblNodeEsq)
+	NodeDir = SequentNode:new(lblNodeDir)
+
+	NodeF = SequentNode:new('F')
+	NodeB = SequentNode:new('B')
+	NodeAnd0 = SequentNode:new(opAnd.graph) 
+	NodeA = SequentNode:new('A') 
+
+	
+	Edge1 = SequentEdge:new(lblEdgeGoal, NodeGG, NodeSeq)
+	Edge2 = SequentEdge:new(lblEdgeEsq, NodeSeq, NodeEsq)
+	Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
+	Edge4 = SequentEdge:new('', NodeEsq, NodeF)
+	Edge5 = SequentEdge:new('', NodeDir, NodeAnd0)	
 	Edge6 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeB)
 	Edge7 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeA) 
 
@@ -506,8 +853,12 @@ end
 function LogicModule.createGraphFromString( formulaText )
 	
 	--local graph = createNotPlusAndGraphRight()
-	local graph = createAndGraphLeft()
-	--local graph = createGraphImplyLeft()
+	--local graph = createAndGraphLeft()
+	--local graph = createAndGraphRight()
+	--local graph = createOrGraphLeft()
+	--local graph = createOrGraphRight()
+	--local graph = createGraphImplyRight()
+	local graph = createGraphImplyLeft()
 	--local graph = createNotGraph()
 	--local graph = createGraphAndRight()
 	

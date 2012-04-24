@@ -192,8 +192,7 @@ end
 
 --- Insert a list of edges in the list of the edges that this node have comming out of him
 function Node:setEdgesOut(edgesOut)
-	if edgesOut == nil then
-		self.edgesOut = nil -- apago a lista
+	if edgesOut == nil then	
 		return
 	end
 	
