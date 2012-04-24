@@ -29,11 +29,8 @@ local function verifySideOfSequent(originNode, targetNode)
 	-- se achar retorna true
 	-- se nao achar retorna false
 	-- chama recursivamente para cada no destino a partir de originNode
-	
-	if originNode:getLabel() == targetNode:getLabel() then
-		createDebugMessage("Achei!!!!")
-		return true
-	end
+	-- ALTERAR ESSA FUNCAO PRA VER SOH SE O ORIGINNODE TEM ARESTA PRO TARGETNODE.
+	-- SE NAO TIVER EH PQ NAO TA EM EVIDENCIA EM NENHUM LADO DO SEQUENTE E NAO PODE SER EXPANDIDO
 	
 	edgesOut = originNode:getEdgesOut()
 	
@@ -44,17 +41,78 @@ local function verifySideOfSequent(originNode, targetNode)
 	local retValues = {}
 	
 	for i=1, #edgesOut do
-		retValues[i] = verifySideOfSequent(edgesOut[i]:getDestino(), targetNode)
-	end
-	
-	for i=1, #retValues do
-		if retValues[i] then
+		if edgesOut[i]:getDestino():getLabel() == targetNode:getLabel() then
 			return true
+		else
+			return false
 		end
 	end
 	
 	return false
 
+end
+
+--[[local function copySequentGraphAux(graph, node, listNewNodes, listNewEdges)	
+
+	nodeNew = SequentNode:new(node:getInformation("type"))
+	listNewNodes[#listNewNodes+1] = nodeNew
+	
+	local listEdgesOut = nodeNew:getEdgesOut()
+	
+	for i=1, #listEdgesOut do
+		local newEdge = SequentEdge:new(listEdgesOut[i]:getLabel(), nodeNew, listEdgesOut[i]:getDestino())		
+		listNewEdges[#listNewEdges+1] = newEdge
+		
+		copySequentGraphAux(graph, listEdgesOut[i]:getDestino(), listNewNodes, listNewEdges)
+	end	
+end]]--
+
+--- Cria um sequente novo para poder fazer uma dedução
+-- Cria um SeqX + um nó eX + um nó dX e aponta o eX e o dX para os mesmo lugares que o sequente anterior
+-- apontava.
+local function createNewSequent(graph, sequentNode)
+
+	local copiedSequent = nil
+
+	local listNewNodes = {} -- todos os vertices que vou adicionar no grafo
+	local listNewEdges = {} -- todas as arestas que vou adicionar no grafo
+	
+	nodeSeqNew = SequentNode:new(sequentNode:getInformation("type"))
+	listNewNodes[#listNewNodes+1] = nodeSeqNew
+	
+
+	local newNodeLeft = SequentNode:new(lblNodeEsq)
+	local newNodeDir = SequentNode:new(lblNodeDir)
+	listNewNodes[#listNewNodes+1] = newNodeLeft
+	listNewNodes[#listNewNodes+1] = newNodeDir
+
+	local newEdgeLeft = SequentEdge:new(lblEdgeEsq, nodeSeqNew, newNodeLeft)		
+	local newEdgeRight = SequentEdge:new(lblEdgeDir, nodeSeqNew, newNodeDir)
+	listNewEdges[#listNewEdges+1] = newEdgeLeft
+	listNewEdges[#listNewEdges+1] = newEdgeRight
+	
+	local nodeEsq = sequentNode:getEdgeOut(lblEdgeEsq):getDestino()
+	local nodeDir = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
+	
+	esqEdgesOut = nodeEsq:getEdgesOut()
+	for i=1, #esqEdgesOut do
+		local newEdge = SequentEdge:new(esqEdgesOut[i]:getLabel(), newNodeLeft, esqEdgesOut[i]:getDestino())
+		listNewEdges[#listNewEdges+1] = newEdge
+	end
+		
+	dirEdgesOut = nodeDir:getEdgesOut()
+	for i=1, #dirEdgesOut do
+		local newEdge = SequentEdge:new(dirEdgesOut[i]:getLabel(), newNodeDir, dirEdgesOut[i]:getDestino())
+		listNewEdges[#listNewEdges+1] = newEdge
+	end	
+	--copySequentGraphAux(graph, listEdgesOut[i]:getDestino(), listNewNodes, listNewEdges)
+
+	-- adiciono no grafo principal	
+	local deductionEdge = SequentEdge:new(lblEdgeDeducao, sequentNode, nodeSeqNew)
+	listNewEdges[#listNewEdges+1] = deductionEdge
+	
+	graph:addNodes(listNewNodes)
+	graph:addEdges(listNewEdges)	
 end
 
 
@@ -85,7 +143,7 @@ local function verifySideOfOperator(sequentNode, operatorNode)
 			-- verifica se ta na esquerda
 			createDebugMessage("Verificando esquerda sequente")
 			if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
-				return "Left"
+				return leftSide
 			end
 		end
 		
@@ -93,7 +151,7 @@ local function verifySideOfOperator(sequentNode, operatorNode)
 			-- verifica se ta na direita, pq pode nao estar em nenhum dos lados. (Usuario clicou em um operador que nao faz parte do sequente que ele tinha clicado)
 			createDebugMessage("Verificando direita sequente")
 			if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
-				return "Right"
+				return rightSide
 			end
 		end		
 	end
@@ -108,40 +166,170 @@ local function expandNodeNot (graph, sequentNode, nodeOpNot)
 	-- 1) Verificar o lado que o not esta.
 	local sideOfOperator = verifySideOfOperator(sequentNode, nodeOpNot)
 	
-	if sideOfOperator == "Left" then
+	local lblEdge1
+	local lblEdge2
+	
+	if sideOfOperator == leftSide then
 		createDebugMessage(nodeOpNot:getLabel().." is in the left side of the ".. sequentNode:getLabel())
-		
-		-- 1) Verificar se esse operador eh alcancavel pelo no dX. se nao for eh pq tem um operador mais acima dele,
-		-- e o usuario nao pode expandir.
-		local nodeEsq = sequentNode:getEdgeOut(lblEdgeEsq):getDestino()
-		
-		local edgesOut = nodeEsq:getEdgesOut()
-		local isNodeOpNotFound = false
-		for i=1, #edgesOut do
-			
-			if edgesOut[i]:getDestino():getLabel() == nodeOpNot:getLabel() then
-				isNodeOpNotFound = true
-				--graph:removeEdge(edgesOut[i]) -- ja tiro a aresta
-			end
-		end
-		
-		if not isNodeOpNotFound then
-			-- o operador escolhido esta dentro de um outro operador e por isso nao pode ser expandido
-			return nil -- nao atualizarei nada			
-		end
-		
-		-- 2) Ir na direita do sequente no vertice "dX" e adicionar uma aresta comecando dele para o operador nodeOpNot
-		local nodeDir = sequentNode:getEdgeOut(lblEdgeDir):getDestino()
-		
-		newEdge = SequentEdge:new("", nodeDir, nodeOpNot:getEdgeOut(lblCarnality..lblUnary):getDestino()) -- liguei do lado novo
-		graph:addEdge(newEdge)
-		
-		graph:removeNode(nodeOpNot) -- deleta o vertice e as arestas que chegam nele e que saem
-		
-	elseif sideOfOperator == "Right" then
+		lblEdge1 = lblEdgeEsq
+		lblEdge2 = lblEdgeDir
+	elseif sideOfOperator == rightSide then
 		createDebugMessage(nodeOpNot:getLabel().." is in the right side of the ".. sequentNode:getLabel())
+		lblEdge1 = lblEdgeDir
+		lblEdge2 = lblEdgeEsq	
+	elseif sideOfOperator == nil then
+		createDebugMessage("sideOfOperator is nil")
+		return nil -- nao atualizarei nada
+	end
+	
+	createNewSequent(graph, sequentNode)
+	
+	local newSequentNode = sequentNode:getEdgeOut(lblEdgeDeducao):getDestino()
+	
+	-- 1) Verificar se esse operador eh alcancavel pelo no dX. se nao for eh pq tem um operador mais acima dele,
+	-- e o usuario nao pode expandir.
+	local node1 = newSequentNode:getEdgeOut(lblEdge1):getDestino()
+	
+	local edgesOut = node1:getEdgesOut()
+	local isNodeOpNotFound = false
+	local edgeToRemove = nil
+	for i=1, #edgesOut do
 		
+		if edgesOut[i]:getDestino():getLabel() == nodeOpNot:getLabel() then
+			isNodeOpNotFound = true
+			edgeToRemove = edgesOut[i] --graph:removeEdge(edgesOut[i]) -- ja tiro a aresta
+			break
+		end
+	end
+	
+	if not isNodeOpNotFound then
+		-- o operador escolhido esta dentro de um outro operador e por isso nao pode ser expandido
+		local nodeEsq = newSequentNode:getEdgeOut(lblEdgeEsq):getDestino()
+		local nodeDir = newSequentNode:getEdgeOut(lblEdgeDir):getDestino()
 		
+		createDebugMessage("WARNING: Caiu em uma area nao testada!!! O grafo tem vertices a mais ou a menos errados??")
+		
+		graph:removeNode(nodeEsq)
+		graph:removeNode(nodeDir)
+		graph:removeNode(newSequentNode)
+		return nil -- nao atualizarei nada			
+	end		
+	
+	-- 2) Ir na direita do sequente no vertice "dX" e adicionar uma aresta comecando dele para o operador nodeOpNot
+	local node2 = newSequentNode:getEdgeOut(lblEdge2):getDestino()
+	
+	newEdge = SequentEdge:new("", node2, nodeOpNot:getEdgeOut(lblCarnality..lblUnary):getDestino()) -- liguei do lado novo
+	graph:addEdge(newEdge)
+	
+	graph:removeEdge(edgeToRemove)
+	--graph:removeNode(nodeOpNot) -- deleta o vertice e as arestas que chegam nele e que saem	
+	
+	return graph
+end
+
+local function expandNodeAndLeft(graph, sequentNode, nodeOpAnd)
+	-- vira virgula
+	createNewSequent(graph, sequentNode)
+	
+	local newSequentNode = sequentNode:getEdgeOut(lblEdgeDeducao):getDestino()
+	
+	local nodeRight = newSequentNode:getEdgeOut(lblEdgeDir):getDestino()
+	local nodeLeft = newSequentNode:getEdgeOut(lblEdgeEsq):getDestino()
+	
+	local edgesOutLeftTam = #(nodeLeft:getEdgesOut()) 
+	
+	local edgesOutLeftList = nodeLeft:getEdgesOut()
+	for i=1, edgesOutLeftTam do
+		if edgesOutLeftList[i]:getDestino():getLabel() == nodeOpAnd:getLabel() then
+			graph:removeEdge(edgesOutLeftList[i])
+			
+			local nodeOpEdges = nodeOpAnd:getEdgesOut()
+			for j=1, #nodeOpEdges do
+				local numEdge = #(nodeLeft:getEdgesOut())
+				local newEdge1 = SequentEdge:new(""..numEdge, nodeLeft, nodeOpEdges[j]:getDestino())
+				graph:addEdge(newEdge1)
+			end
+			
+			break
+		end				
+	end
+	
+	return graph
+	
+end
+
+local function expandNodeAnd(graph, sequentNode, nodeOpAnd)
+	createDebugMessage("expandNodeAnd foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpAnd:getLabel())
+
+	local sideOfOperator = verifySideOfOperator(sequentNode, nodeOpAnd)	
+	
+	if sideOfOperator == leftSide then
+		createDebugMessage(nodeOpAnd:getLabel().." is in the left side of the ".. sequentNode:getLabel())
+		expandNodeAndLeft(graph, sequentNode, nodeOpAnd)
+	elseif sideOfOperator == rightSide then
+		createDebugMessage(nodeOpAnd:getLabel().." is in the right side of the ".. sequentNode:getLabel())
+		expandNodeAndRight(graph, sequentNode, nodeOpAnd)
+	elseif sideOfOperator == nil then
+		createDebugMessage("sideOfOperator is nil")
+		return nil -- nao atualizarei nada
+	end	
+	
+	
+	return graph
+end
+
+local function expandNodeOr(graph, sequentNode, nodeOpOr)
+	createDebugMessage("expandNodeOr foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpOr:getLabel())
+	
+	return graph
+end
+
+local function expandNodeImpLeft(graph, sequentNode, nodeOpImp)
+	
+end
+
+local function expandNodeImpRight(graph, sequentNode, nodeOpImp)
+	-- Só passar a parte esquerda da implicacao pra esquerda do sequente.
+	
+	createNewSequent(graph, sequentNode)
+	
+	local newSequentNode = sequentNode:getEdgeOut(lblEdgeDeducao):getDestino()
+	
+	local nodeRight = newSequentNode:getEdgeOut(lblEdgeDir):getDestino()
+	local nodeLeft = newSequentNode:getEdgeOut(lblEdgeEsq):getDestino()
+	
+	local edgesOutLeft = #(nodeLeft:getEdgesOut()) 
+	local edgesOutRight = #(nodeRight:getEdgesOut()) 
+	
+	local newEdge1 = SequentEdge:new(""..edgesOutLeft, nodeLeft, nodeOpImp:getEdgeOut(lblEdgeEsq):getDestino()) -- jogo a parte da esquerda da implicacao pra esquerda do sequente	
+	local newEdge2 = SequentEdge:new(""..edgesOutRight, nodeRight, nodeOpImp:getEdgeOut(lblEdgeDir):getDestino())
+	
+	graph:addEdge(newEdge1)
+	graph:addEdge(newEdge2)	
+	
+	local listEdgesOut = nodeRight:getEdgesOut()
+	for i=1, #listEdgesOut do
+		if listEdgesOut[i]:getDestino():getLabel() == nodeOpImp:getLabel() then
+			graph:removeEdge(listEdgesOut[i]) -- tiro a aresta que liga a direita com a implicacao
+			break
+		end
+	end
+	
+	return graph
+	
+end
+
+local function expandNodeImp(graph, sequentNode, nodeOpImp)
+	createDebugMessage("expandNodeImp foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpImp:getLabel())
+	
+	local sideOfOperator = verifySideOfOperator(sequentNode, nodeOpImp)	
+	
+	if sideOfOperator == leftSide then
+		createDebugMessage(nodeOpImp:getLabel().." is in the left side of the ".. sequentNode:getLabel())
+		return expandNodeImpLeft(graph, sequentNode, nodeOpImp)
+	elseif sideOfOperator == rightSide then
+		createDebugMessage(nodeOpImp:getLabel().." is in the right side of the ".. sequentNode:getLabel())
+		return expandNodeImpRight(graph, sequentNode, nodeOpImp)
 	elseif sideOfOperator == nil then
 		createDebugMessage("sideOfOperator is nil")
 		return nil -- nao atualizarei nada
@@ -150,19 +338,159 @@ local function expandNodeNot (graph, sequentNode, nodeOpNot)
 	return graph
 end
 
-local function expandNodeAnd(graph, sequentNode, nodeOpAnd)
-	createDebugMessage("expandNodeAnd foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpAnd:getLabel())
-	return graph
+
+local function createGraphImplyLeft()
+
+	local SequentGraph = Graph:new ()
+		
+	NodeGG = SequentNode:new(lblNodeGG)
+	NodeSeq = SequentNode:new(opSeq.graph)
+	NodeEsq = SequentNode:new(lblNodeEsq)
+	NodeDir = SequentNode:new(lblNodeDir)
+	
+	
+	NodeNot0 = SequentNode:new(opNot.graph)
+	--NodeNot1 = SequentNode:new(opNot.graph)
+	NodeF = SequentNode:new('F')
+	--NodeAnd0 = SequentNode:new(opAnd.graph) -- ~F SEQ ~(F ^ A)
+	NodeImp0 = SequentNode:new(opImp.graph)
+	NodeA = SequentNode:new('A') -- ~F SEQ ~(F ^ A)
+
+	
+	Edge1 = SequentEdge:new(lblEdgeGoal, NodeGG, NodeSeq)
+	Edge2 = SequentEdge:new(lblEdgeEsq, NodeSeq, NodeEsq)
+	Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
+	Edge4 = SequentEdge:new('', NodeEsq, NodeNot0)
+	Edge5 = SequentEdge:new('', NodeDir, NodeImp0)
+	Edge6 = SequentEdge:new(lblCarnality..lblUnary, NodeNot0, NodeF) -- ~F SEQ ~F 
+	--Edge6 = SequentEdge:new(lblCarnality..lblUnary, NodeNot0, NodeAnd0) -- ~F SEQ ~(F ^ A)
+	Edge8 = SequentEdge:new(lblEdgeEsq , NodeImp0, NodeF)
+	Edge9 = SequentEdge:new(lblEdgeDir , NodeImp0, NodeA)
+	--Edge8 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeF) -- ~F SEQ ~(F ^ A)
+	--Edge9 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeA) -- ~F SEQ ~(F ^ A)
+	Edge7 = SequentEdge:new(lblCarnality..lblUnary, NodeNot0, NodeF)
+	
+	-- ~F SEQ ~F
+	--nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeNot0, NodeNot1, NodeF}
+	--edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7}
+	
+	-- ~F SEQ ~(F ^ A)
+	--nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeNot0, NodeNot1, NodeF, NodeAnd0, NodeA}
+	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7, Edge8, Edge9}
+
+	-- ~F SEQ (F -> A)
+	nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeNot0, NodeImp0, NodeF, NodeA}
+	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7, Edge8, Edge9}	
+	
+	SequentGraph:addNodes(nodes)
+	SequentGraph:addEdges(edges)
+	
+	return SequentGraph
 end
 
-local function expandNodeOr(graph, sequentNode, nodeOpOr)
-	createDebugMessage("expandNodeOr foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpOr:getLabel())
-	return graph
+local function createNotGraph()
+
+	local SequentGraph = Graph:new ()
+		
+	NodeGG = SequentNode:new(lblNodeGG)
+	NodeSeq = SequentNode:new(opSeq.graph)
+	NodeEsq = SequentNode:new(lblNodeEsq)
+	NodeDir = SequentNode:new(lblNodeDir)
+	
+	
+	NodeNot0 = SequentNode:new(opNot.graph)
+	NodeNot1 = SequentNode:new(opNot.graph)
+	NodeF = SequentNode:new('F')
+	
+	Edge1 = SequentEdge:new(lblEdgeGoal, NodeGG, NodeSeq)
+	Edge2 = SequentEdge:new(lblEdgeEsq, NodeSeq, NodeEsq)
+	Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
+	Edge4 = SequentEdge:new('', NodeEsq, NodeNot0)
+	Edge5 = SequentEdge:new('', NodeDir, NodeNot1)
+	Edge6 = SequentEdge:new(lblCarnality..lblUnary, NodeNot0, NodeF) -- ~F SEQ ~F 
+	Edge7 = SequentEdge:new(lblCarnality..lblUnary, NodeNot1, NodeF)
+	
+	-- ~F SEQ ~F
+	nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeNot0, NodeNot1, NodeF}
+	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7}
+	
+	SequentGraph:addNodes(nodes)
+	SequentGraph:addEdges(edges)
+	
+	return SequentGraph	
+
 end
 
-local function expandNodeImp(graph, sequentNode, nodeOpImp)
-	createDebugMessage("expandNodeImp foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpImp:getLabel())
-	return graph
+local function createAndGraphLeft()
+
+	local SequentGraph = Graph:new ()
+		
+	NodeGG = SequentNode:new(lblNodeGG)
+	NodeSeq = SequentNode:new(opSeq.graph)
+	NodeEsq = SequentNode:new(lblNodeEsq)
+	NodeDir = SequentNode:new(lblNodeDir)
+
+	NodeF = SequentNode:new('F')
+	NodeB = SequentNode:new('B')
+	NodeAnd0 = SequentNode:new(opAnd.graph) 
+	NodeA = SequentNode:new('A') 
+
+	
+	Edge1 = SequentEdge:new(lblEdgeGoal, NodeGG, NodeSeq)
+	Edge2 = SequentEdge:new(lblEdgeEsq, NodeSeq, NodeEsq)
+	Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
+	Edge4 = SequentEdge:new('', NodeDir, NodeF)
+	Edge5 = SequentEdge:new('', NodeEsq, NodeAnd0)	
+	Edge6 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeB)
+	Edge7 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeA) 
+
+	-- F SEQ (B ^ A)
+	nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeB, NodeF, NodeAnd0, NodeA}
+	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7}
+	
+	SequentGraph:addNodes(nodes)
+	SequentGraph:addEdges(edges)
+	
+	return SequentGraph
+
+end
+
+local function createNotPlusAndGraphRight()
+
+	local SequentGraph = Graph:new ()
+		
+	NodeGG = SequentNode:new(lblNodeGG)
+	NodeSeq = SequentNode:new(opSeq.graph)
+	NodeEsq = SequentNode:new(lblNodeEsq)
+	NodeDir = SequentNode:new(lblNodeDir)
+	
+	
+	NodeNot0 = SequentNode:new(opNot.graph)
+	NodeNot1 = SequentNode:new(opNot.graph)
+	NodeF = SequentNode:new('F')
+	NodeAnd0 = SequentNode:new(opAnd.graph) -- ~F SEQ ~(F ^ A)
+	NodeA = SequentNode:new('A') -- ~F SEQ ~(F ^ A)
+
+	
+	Edge1 = SequentEdge:new(lblEdgeGoal, NodeGG, NodeSeq)
+	Edge2 = SequentEdge:new(lblEdgeEsq, NodeSeq, NodeEsq)
+	Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
+	Edge4 = SequentEdge:new('', NodeEsq, NodeNot0)
+	Edge5 = SequentEdge:new('', NodeDir, NodeNot1)	
+	Edge6 = SequentEdge:new(lblCarnality..lblUnary, NodeNot1, NodeAnd0) -- ~F SEQ ~(F ^ A)
+	Edge7 = SequentEdge:new(lblCarnality..lblUnary, NodeNot0, NodeF)
+	Edge8 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeF) -- ~F SEQ ~(F ^ A)
+	Edge9 = SequentEdge:new(lblCarnality..lblBinary, NodeAnd0, NodeA) -- ~F SEQ ~(F ^ A)
+
+	-- ~F SEQ ~(F ^ A)
+	nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeNot0, NodeNot1, NodeF, NodeAnd0, NodeA}
+	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7, Edge8, Edge9}
+	
+	SequentGraph:addNodes(nodes)
+	SequentGraph:addEdges(edges)
+	
+	return SequentGraph
+
 end
 
 -- Public functions
@@ -177,39 +505,19 @@ end
 ]]--
 function LogicModule.createGraphFromString( formulaText )
 	
-	local SequentGraph = Graph:new ()
+	--local graph = createNotPlusAndGraphRight()
+	local graph = createAndGraphLeft()
+	--local graph = createGraphImplyLeft()
+	--local graph = createNotGraph()
+	--local graph = createGraphAndRight()
 	
-	-- ~F SEQ ~F
-	NodeGG = SequentNode:new(lblNodeGG)
-	NodeSeq = SequentNode:new(opSeq.graph)
-	NodeEsq = SequentNode:new(lblNodeEsq)
-	NodeDir = SequentNode:new(lblNodeDir)
-	NodeNot0 = SequentNode:new(opNot.graph)
-	NodeNot1 = SequentNode:new(opNot.graph)
-	NodeF = SequentNode:new('F')
-
-	Edge1 = SequentEdge:new(lblEdgeGoal, NodeGG, NodeSeq)
-	Edge2 = SequentEdge:new(lblEdgeEsq, NodeSeq, NodeEsq)
-	Edge3 = SequentEdge:new(lblEdgeDir, NodeSeq, NodeDir)
-	Edge4 = SequentEdge:new('', NodeEsq, NodeNot1)
-	Edge5 = SequentEdge:new('', NodeDir, NodeNot0)
-	Edge6 = SequentEdge:new(lblCarnality..lblUnary, NodeNot0, NodeF)
-	Edge7 = SequentEdge:new(lblCarnality..lblUnary, NodeNot1, NodeF)
-	
-	nodes = {NodeGG, NodeSeq, NodeEsq, NodeDir, NodeNot0, NodeNot1, NodeF}
-	edges = {Edge1, Edge2, Edge3, Edge4, Edge5, Edge6, Edge7}
-
-	SequentGraph:addNodes(nodes)
-	SequentGraph:addEdges(edges)
-	
-	assert( getmetatable(SequentGraph) == Graph_Metatable , "LogicModule.createGraphFromString expects a graph.")
-	
-	return SequentGraph
+	return graph
 end
 
 --- Verify if a especific node is of the type difinet by operatorIdentifier
 -- @param node The node to verify
 -- @param operatorIdentifier An string defined in ConstantsForSequent.lua in Operators table.
+--[[
 local function verifyGraphNodeOperator(node, operatorIdentifier)
 
 	local validOperator = false
@@ -256,6 +564,7 @@ local function verifyGraphNodeOperator(node, operatorIdentifier)
 		return nil
 	end
 end
+]]--
 
 --- Expand a operator in a sequent.
 -- For a especific graph and a node of that graph, this functions expands the node if that node is an operator.
@@ -266,7 +575,10 @@ function LogicModule.expandNode( graph, targetNode )
 	assert( getmetatable(targetNode) == Node_Metatable , "expandNode expects a Node") -- Garantir que é um vertice
 	createDebugMessage("expandNode foi chamada")
 	
-	if verifyGraphNodeOperator(targetNode, opSeq.graph) ~= nil then
+	local typeOfNode = targetNode:getInformation("type")
+	
+	if typeOfNode == opSeq.graph then
+	--if verifyGraphNodeOperator(targetNode, opSeq.graph) ~= nil then
 		GoalSequentNode = targetNode
 		createDebugMessage("Sequente escolhido! = "..targetNode:getLabel()..", clique em um operador ou em qualquer lugar para cancelar a escolha do sequente.")
 		return nil -- significa que nao alterei o grafo, só para a app grafica nao ter que redesenhar
@@ -284,18 +596,22 @@ function LogicModule.expandNode( graph, targetNode )
 	-- Verificar se o targetNode é um operador
 	local newGraph = nil
 	
-	if verifyGraphNodeOperator(targetNode, opAnd.graph) ~= nil then		
-		newGraph = expandNodeAnd(graph, GoalSequentNode, targetNode)
-	elseif verifyGraphNodeOperator(targetNode, opOr.graph) ~= nil then
-		newGraph = expandNodeOr(graph, GoalSequentNode, targetNode)
-	elseif verifyGraphNodeOperator(targetNode, opImp.graph) ~= nil then
-		newGraph = expandNodeImp(graph, GoalSequentNode, targetNode)
-	elseif verifyGraphNodeOperator(targetNode, opNot.graph) ~= nil then	
-		createDebugMessage("Eh o operador: "..targetNode:getLabel())
-		newGraph = expandNodeNot(graph, GoalSequentNode, targetNode)
+	if not GoalSequentNode:getInformation("isExpanded") then
+		if typeOfNode == opAnd.graph then				
+			newGraph = expandNodeAnd(graph, GoalSequentNode, targetNode)
+		elseif typeOfNode == opOr.graph then
+			newGraph = expandNodeOr(graph, GoalSequentNode, targetNode)
+		elseif typeOfNode == opImp.graph then
+			newGraph = expandNodeImp(graph, GoalSequentNode, targetNode)
+		elseif typeOfNode == opNot.graph then	
+			newGraph = expandNodeNot(graph, GoalSequentNode, targetNode)
+		end
+	else
+		createDebugMessage("O sequente "..GoalSequentNode:getLabel().."ja foi expandido!")
 	end
 	
 	if newGraph ~= nil then
+		GoalSequentNode:setInformation("isExpanded", true)
 		GoalSequentNode = nil -- Ja expandiu, agora escolhe um sequente de novo.
 		createDebugMessage("Atualizou grafo!")
 		return newGraph

@@ -87,7 +87,7 @@ end
 --[[
 	Return the destination node of the edge
 ]]--
-function Edge:getDestino(node)
+function Edge:getDestino()
 	return self.destino
 end
 

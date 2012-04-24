@@ -29,6 +29,8 @@ SequentNode = {}
 
 function SequentNode:new(labelNode) -- testar esse override
 
+	local typeNode = labelNode
+
 	if labelNode == opSeq.graph then
 		labelNode = labelNode .. sequentNodeCount		
 		sequentNodeCount = sequentNodeCount + 1
@@ -52,7 +54,12 @@ function SequentNode:new(labelNode) -- testar esse override
 		dirNodeCount = dirNodeCount + 1
 	end
 		
-	return Node:new(labelNode)
+	local newNode = Node:new(labelNode)
+
+	newNode:setInformation("type", typeNode)
+	newNode:setInformation("isExpanded", false)
+	
+	return newNode
 
 end
 

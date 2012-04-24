@@ -55,3 +55,7 @@ lblCarnality = "log_"
 lblUnary = "u"
 lblBinary = "b" 
 
+-- Side definitions
+leftSide = "Left"
+rightSide = "Right"
+

@@ -225,7 +225,7 @@ local function ApplyForces(graph)
 
 			total_kinetic_energy = total_kinetic_energy + (nodes[i]:getInformation("m") * ((nodes[i]:getInformation("Vx")^2) + (nodes[i]:getInformation("Vy")^2)))
 		end
-	until total_kinetic_energy < 5000
+	until total_kinetic_energy < 50000
 	
 end
 
