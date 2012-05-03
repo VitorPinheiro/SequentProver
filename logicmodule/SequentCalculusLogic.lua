@@ -6,7 +6,7 @@
 
 ]]--
 
-dofile "..\\logicmodule\\SequentGraph.lua"
+dofile "..\\logicmodule\\SequentGoalsLogic.lua"
 
 -- Junta as funções que este modulo oferece como publicas.
 LogicModule = {}
@@ -14,22 +14,15 @@ LogicModule = {}
 -- Sequente alvo da operação
 local GoalSequentNode = nil
 
---[[ 
-	Defining the Metatable
-]]--
---LogicModule_Metatable = { __index = LogicModule }
-
---setmetatable( {}, LogicModule_Metatable )
-
+-- Lista de goals do grafo
+-- nodeSeq:getLabel() é o id do sequent node. O sequente deejado estara indexado pelo id dele nesta lista.
+-- para pegar os goals do sequentNode por exemplo é só fazer: goalsList[sequentNode:getLabel()]
+local goalsList = {}
 
 -------------------------------------------- Private functions --------------------------------------------
 
 local function verifySideOfSequent(originNode, targetNode)
-	-- recursivo até achar o targetNode
-	-- se achar retorna true
-	-- se nao achar retorna false
-	-- chama recursivamente para cada no destino a partir de originNode
-	-- ALTERAR ESSA FUNCAO PRA VER SOH SE O ORIGINNODE TEM ARESTA PRO TARGETNODE.
+	-- VE SE O ORIGINNODE TEM ARESTA PRO TARGETNODE.
 	-- SE NAO TIVER EH PQ NAO TA EM EVIDENCIA EM NENHUM LADO DO SEQUENTE E NAO PODE SER EXPANDIDO
 	
 	edgesOut = originNode:getEdgesOut()
@@ -51,21 +44,6 @@ local function verifySideOfSequent(originNode, targetNode)
 	return false
 
 end
-
---[[local function copySequentGraphAux(graph, node, listNewNodes, listNewEdges)	
-
-	nodeNew = SequentNode:new(node:getInformation("type"))
-	listNewNodes[#listNewNodes+1] = nodeNew
-	
-	local listEdgesOut = nodeNew:getEdgesOut()
-	
-	for i=1, #listEdgesOut do
-		local newEdge = SequentEdge:new(listEdgesOut[i]:getLabel(), nodeNew, listEdgesOut[i]:getDestino())		
-		listNewEdges[#listNewEdges+1] = newEdge
-		
-		copySequentGraphAux(graph, listEdgesOut[i]:getDestino(), listNewNodes, listNewEdges)
-	end	
-end]]--
 
 --- Cria um sequente novo para poder fazer uma dedução
 -- Cria um SeqX + um nó eX + um nó dX e aponta o eX e o dX para os mesmo lugares que o sequente anterior
@@ -105,7 +83,6 @@ local function createNewSequent(graph, sequentNode)
 		local newEdge = SequentEdge:new(dirEdgesOut[i]:getLabel(), newNodeDir, dirEdgesOut[i]:getDestino())
 		listNewEdges[#listNewEdges+1] = newEdge
 	end	
-	--copySequentGraphAux(graph, listEdgesOut[i]:getDestino(), listNewNodes, listNewEdges)
 
 	-- adiciono no grafo principal	
 	local deductionEdge = SequentEdge:new(lblEdgeDeducao, sequentNode, nodeSeqNew)
@@ -159,6 +136,10 @@ local function verifySideOfOperator(sequentNode, operatorNode)
 	return nil 
 end
 
+--- Expand the not operator
+-- @param graph The graph that will be expanded
+-- @param sequentNode The sequente that the nodeOpNot is part
+-- @param nodeOpNot The operator that will be expanded
 local function expandNodeNot (graph, sequentNode, nodeOpNot)
 	createDebugMessage("expandNodeNot foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpNot:getLabel())
 		
@@ -218,12 +199,19 @@ local function expandNodeNot (graph, sequentNode, nodeOpNot)
 	-- 2) Ir na direita do sequente no vertice "dX" e adicionar uma aresta comecando dele para o operador nodeOpNot
 	local node2 = newSequentNode:getEdgeOut(lblEdge2):getDestino()
 	
-	newEdge = SequentEdge:new("", node2, nodeOpNot:getEdgeOut(lblCarnality..lblUnary):getDestino()) -- liguei do lado novo
+	local edges = node2:getEdgesOut()
+	local numEdges = 0
+	if edges ~= nil then		
+		numEdges = #edges
+	end
+	
+	newEdge = SequentEdge:new(""..numEdges, node2, nodeOpNot:getEdgeOut(lblCarnality..lblUnary):getDestino()) -- liguei do lado novo
 	graph:addEdge(newEdge)
 	
 	graph:removeEdge(edgeToRemove)
 	--graph:removeNode(nodeOpNot) -- deleta o vertice e as arestas que chegam nele e que saem	
 	
+	goalsList[newSequentNode:getLabel()] = GoalsLogic.assembleGoalList(newSequentNode)
 	return graph
 end
 
@@ -284,6 +272,7 @@ local function expandNodeAndRight(graph, sequentNode, nodeOpAnd)
 	graph:addEdge(newEdge1)
 	graph:addEdge(newEdge2)
 	
+	goalsList[newSequents[1]:getLabel()] = GoalsLogic.assembleGoalList(newSequents[2])
 	return graph
 
 end
@@ -314,6 +303,7 @@ local function expandNodeAndLeft(graph, sequentNode, nodeOpAnd)
 		end				
 	end
 	
+	goalsList[newSequentNode:getLabel()] = GoalsLogic.assembleGoalList(newSequentNode)
 	return graph
 	
 end
@@ -364,6 +354,7 @@ local function expandNodeOrRight(graph, sequentNode, nodeOpOr)
 		end				
 	end
 
+	goalsList[newSequentNode:getLabel()] = GoalsLogic.assembleGoalList(newSequentNode)
 	return graph
 end
 
@@ -424,6 +415,8 @@ local function expandNodeOrLeft(graph, sequentNode, nodeOpOr)
 	graph:addEdge(newEdge1)
 	graph:addEdge(newEdge2)
 	
+	goalsList[newSequents[1]:getLabel()] = GoalsLogic.assembleGoalList(newSequents[1])
+	goalsList[newSequents[2]:getLabel()] = GoalsLogic.assembleGoalList(newSequents[2])
 	return graph
 
 end
@@ -511,6 +504,9 @@ local function expandNodeImpLeft(graph, sequentNode, nodeOpImp)
 	graph:addEdge(newEdge1)
 	graph:addEdge(newEdge2)
 	
+	goalsList[newSequents[1]:getLabel()] = GoalsLogic.assembleGoalList(newSequents[1])
+	goalsList[newSequents[2]:getLabel()] = GoalsLogic.assembleGoalList(newSequents[2])
+	
 	return graph
 	
 end
@@ -542,6 +538,8 @@ local function expandNodeImpRight(graph, sequentNode, nodeOpImp)
 	graph:addEdge(newEdge1)
 	graph:addEdge(newEdge2)		
 	
+	goalsList[newSequentNode:getLabel()] = GoalsLogic.assembleGoalList(newSequentNode)
+	
 	return graph
 	
 end
@@ -560,7 +558,7 @@ local function expandNodeImp(graph, sequentNode, nodeOpImp)
 	elseif sideOfOperator == nil then
 		createDebugMessage("sideOfOperator is nil")
 		return nil -- nao atualizarei nada
-	end
+	end		
 	
 	return graph
 end
@@ -594,6 +592,7 @@ local function createGraphImplyLeft()
 	SequentGraph:addNodes(nodes)
 	SequentGraph:addEdges(edges)
 	
+	goalsList[NodeSeq:getLabel()] = GoalsLogic.assembleGoalList(NodeSeq)
 	return SequentGraph
 end
 
@@ -631,6 +630,7 @@ local function createGraphImplyRight()
 	SequentGraph:addNodes(nodes)
 	SequentGraph:addEdges(edges)
 	
+	goalsList[NodeSeq:getLabel()] = GoalsLogic.assembleGoalList(NodeSeq)
 	return SequentGraph
 end
 
@@ -663,6 +663,7 @@ local function createNotGraph()
 	SequentGraph:addNodes(nodes)
 	SequentGraph:addEdges(edges)
 	
+	goalsList[NodeSeq:getLabel()] = GoalsLogic.assembleGoalList(NodeSeq)
 	return SequentGraph	
 
 end
@@ -697,6 +698,7 @@ local function createOrGraphRight()
 	SequentGraph:addNodes(nodes)
 	SequentGraph:addEdges(edges)
 	
+	goalsList[NodeSeq:getLabel()] = GoalsLogic.assembleGoalList(NodeSeq)
 	return SequentGraph
 end
 
@@ -730,6 +732,7 @@ local function createOrGraphLeft()
 	SequentGraph:addNodes(nodes)
 	SequentGraph:addEdges(edges)
 	
+	goalsList[NodeSeq:getLabel()] = GoalsLogic.assembleGoalList(NodeSeq)
 	return SequentGraph
 	
 end
@@ -764,6 +767,7 @@ local function createAndGraphLeft()
 	SequentGraph:addNodes(nodes)
 	SequentGraph:addEdges(edges)
 	
+	goalsList[NodeSeq:getLabel()] = GoalsLogic.assembleGoalList(NodeSeq)
 	return SequentGraph
 
 end
@@ -798,6 +802,7 @@ local function createAndGraphRight()
 	SequentGraph:addNodes(nodes)
 	SequentGraph:addEdges(edges)
 	
+	goalsList[NodeSeq:getLabel()] = GoalsLogic.assembleGoalList(NodeSeq)
 	return SequentGraph
 
 end
@@ -836,6 +841,8 @@ local function createNotPlusAndGraphRight()
 	SequentGraph:addNodes(nodes)
 	SequentGraph:addEdges(edges)
 	
+	goalsList[NodeSeq:getLabel()] = GoalsLogic.assembleGoalList(NodeSeq)
+	
 	return SequentGraph
 
 end
@@ -852,70 +859,19 @@ end
 ]]--
 function LogicModule.createGraphFromString( formulaText )
 	
-	--local graph = createNotPlusAndGraphRight()
+	local graph = createNotPlusAndGraphRight() -- ~F => ~(A^F)
 	--local graph = createAndGraphLeft()
 	--local graph = createAndGraphRight()
 	--local graph = createOrGraphLeft()
 	--local graph = createOrGraphRight()
 	--local graph = createGraphImplyRight()
-	local graph = createGraphImplyLeft()
+    --local graph = createGraphImplyLeft()
 	--local graph = createNotGraph()
 	--local graph = createGraphAndRight()
 	
 	return graph
 end
 
---- Verify if a especific node is of the type difinet by operatorIdentifier
--- @param node The node to verify
--- @param operatorIdentifier An string defined in ConstantsForSequent.lua in Operators table.
---[[
-local function verifyGraphNodeOperator(node, operatorIdentifier)
-
-	local validOperator = false
-	local operatorOfNode = nil
-	
-	for i=1, #operators do
-		for key,value in pairs(operators[i]) do
-			if key == "graph" then
-				--createDebugMessage("key = "..key.." Value = "..value)
-				--createDebugMessage("operatorIdentifier = "..operatorIdentifier)
-				if value == operatorIdentifier then
-					-- Ok ele usou um nome de operador valido
-					validOperator = true	
-					operatorOfNode = value
-					break
-				end
-			end			
-		end
-		
-		if validOperator then
-			break
-		end
-	end
-	
-	
-	if not validOperator then
-		--"verifyGraphNodeOperator must recive a operatorIdentifier defined in operators table of the ConstantsForSequent.lua. "	
-		return nil
-	end
-	
-	-- Verifica se é um sequent
-	local idPart = string.sub(node:getLabel(), 1, string.len(operatorIdentifier))		
-	local numberPart = string.sub(node:getLabel(), string.len(operatorIdentifier)+1)		
-	
-	--createDebugMessage("idPart = "..idPart)
-	--createDebugMessage("numberPart = "..numberPart)
-	--createDebugMessage("node:getLabel() = "..node:getLabel())
-	
-	
-	if tonumber(numberPart) ~= nil and idPart == operatorIdentifier then 
-		--createDebugMessage("RETORNOU TRUE!")
-		return operatorOfNode
-	else
-		return nil
-	end
-end
-]]--
 
 --- Expand a operator in a sequent.
 -- For a especific graph and a node of that graph, this functions expands the node if that node is an operator.
@@ -963,8 +919,13 @@ function LogicModule.expandNode( graph, targetNode )
 	
 	if newGraph ~= nil then
 		GoalSequentNode:setInformation("isExpanded", true)
+		goalsList[GoalSequentNode:getLabel()]:deleteGoal() -- Ja usei esse sequente, nao guardo a lista de goals dele
+		
 		GoalSequentNode = nil -- Ja expandiu, agora escolhe um sequente de novo.
 		createDebugMessage("Atualizou grafo!")
+		
+		printGoals() -- WARNING, ONLY FOR DEBUG, DELETE IT - VITOR
+		
 		return newGraph
 	else
 		-- Nao foi um operador, ele clicou fora para cancelar o sequente escolhido
@@ -976,3 +937,58 @@ function LogicModule.expandNode( graph, targetNode )
 	end
 end
 
+---
+-- Vai nos sequentes que ainda nao estao expandidos e faz a expancao até o final
+function LogicModule.expandAll(graph)
+
+	createDebugMessage("VITOR 1")
+	local newGraph = graph		
+	local isAllExpanded = true
+	
+	-- loop em todos os sequentes do grafo. se achar um que nao ta expandido, expande.
+	for k,goal in pairs(goalsList) do
+		local seq = goal:getSequent()
+		createDebugMessage("VITOR 1.5 ".. seq:getLabel())
+		
+		assert( getmetatable(seq) == Node_Metatable , "LogicModule.expandAll expects a Node") -- Garantir que é um vertice
+		
+		if not seq:getInformation("isExpanded") then
+			-- expando
+			createDebugMessage("VITOR 2 - expandi")
+			isAllExpanded = false
+			
+			local operator = nil
+			
+			local leftSide = goal:getLeftSide()
+			local rightSide = goal:getRightSide()
+			if #leftSide ~= 0 then
+				assert( getmetatable(leftSide[1]) == Node_Metatable , "LogicModule.expandAll expects a Node. "..leftSide[1]:getLabel())
+				operator = leftSide[1]
+			elseif #rightSide ~= 0 then
+				operator = rightSide[1]
+			else
+				createDebugMessage("O sequente "..seq:getLabel().." nao tem mais nenhum operador. Nao pode ser mais expandido.")
+				isAllExpanded = true -- pq ele nunca vai ser expandido
+				seq:setInformation("isExpanded", true)
+				break
+			end
+			
+			GoalSequentNode = seq
+			newGraph = LogicModule.expandNode(newGraph, operator)
+		end
+	end
+	
+	if not isAllExpanded then
+		createDebugMessage("VITOR 3 - ainda falta")
+		newGraph = LogicModule.expandAll(newGraph)
+	end
+		
+	return newGraph	
+end
+
+
+function printGoals(graph)
+
+
+
+end

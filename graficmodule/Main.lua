@@ -187,8 +187,8 @@ local function ApplyForces(graph)
 					dx = nodes[i]:getPositionX() - nodes[j]:getPositionX()
 					dy = nodes[i]:getPositionY() - nodes[j]:getPositionY()
 					rsq = (dx*dx) + (dy*dy)
-					nodes[i]:setInformation("Fx",(nodes[i]:getInformation("Fx")+(200*dx/rsq)))
-					nodes[i]:setInformation("Fy",(nodes[i]:getInformation("Fy")+(200*dy/rsq)))
+					nodes[i]:setInformation("Fx",(nodes[i]:getInformation("Fx")+(100*dx/rsq)))
+					nodes[i]:setInformation("Fy",(nodes[i]:getInformation("Fy")+(100*dy/rsq)))
 				end
 			end
 
@@ -424,6 +424,38 @@ local function dragNodeOrScreen()
 	end
 end
 
+function expandAllButton()
+	local xPos = windowWidth - 60
+	local yPos = 5
+	local xLen = 55
+	local yLen = 30
+	if love.mouse.getX() >= xPos and love.mouse.getX() <= xPos + xLen and love.mouse.getY() >= yPos and love.mouse.getY() <= yPos + yLen then
+		-- Entra aqui quando o mouse esta em cima da regiao do botao	
+		if love.mouse.isDown("l") then
+			-- Entra aqui quando além do if de cima o botao esquedo foi pressionado.
+			createDebugMessage("Expand All called!")
+			local graph = LogicModule.expandAll(SequentGraph)
+			
+			SequentGraph = prepareGraphToDraw(graph)
+			
+			love.timer.sleep(buttonTime)
+		end
+		love.graphics.setColor(100, 100, 200)
+	else
+		love.graphics.setColor(0, 100, 200)
+	end
+	love.graphics.rectangle("fill", xPos, yPos, xLen, yLen)
+	love.graphics.setColor(0, 0, 255)
+	love.graphics.setLineStyle("smooth")
+	love.graphics.line(xPos, yPos, xPos, yPos + yLen)
+	love.graphics.line(xPos, yPos + yLen, xPos + xLen, yPos + yLen)
+	love.graphics.setColor(255, 255, 255)
+	love.graphics.line(xPos + xLen, yPos, xPos + xLen, yPos + yLen)
+	love.graphics.line(xPos, yPos, xPos + xLen, yPos)
+	love.graphics.setColor(0, 0, 200)
+	love.graphics.printf(expandAllButtonName, xPos + 30, yPos - 5, 0, "center")
+end
+
 
 --[[
 	Função do love usada para desenhar na tela todos os frames. Ela é chamada pelo love em intervalos de tempo
@@ -431,6 +463,7 @@ end
 ]]--
 function love.draw()
 	printDebugMessageTable()
+	expandAllButton()
 	drawGraph(SequentGraph)
 	dragNodeOrScreen()		
 end

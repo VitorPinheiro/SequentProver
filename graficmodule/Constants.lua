@@ -34,3 +34,8 @@ yDebug = 10
 countDebugMsgs = 1
 MsgDebugTable = {}
 MsgDebugTable[1] = "Mensagens para debug:"
+
+-- Button names
+expandAllButtonName = "Expand All"
+
+buttonTime = 150

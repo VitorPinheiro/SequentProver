@@ -13,6 +13,8 @@
 	Print in the screen all the messages contained in the MedDebugTable.
 ]]--
 function printDebugMessageTable()	
+
+
 	for i = 1, #MsgDebugTable do
 		local yRes = yDebug + i*15		
 		
@@ -29,6 +31,8 @@ function printDebugMessageTable()
 		end
 	end
 	love.graphics.setColor(0, 0, 0) -- Black Color
+	
+
 end
 
 --[[
