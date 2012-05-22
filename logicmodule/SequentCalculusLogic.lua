@@ -107,6 +107,11 @@ local function verifySideOfOperator(sequentNode, operatorNode)
 	assert( sequentNode ~= nil , "verifySideOfOperator must be called only if sequentNode is not null.")	
 	assert( getmetatable(sequentNode) == Node_Metatable , "verifySideOfOperator sequentNode must be a Node")
 	
+	
+	--goalsList[sequentNode:getLabel()]
+	-- Depois vc pega o lado direto pelos goals do sequentNode
+	
+	
 	seqEdgesOutList = sequentNode:getEdgesOut()
 	if seqEdgesOutList == nil then
 		return nil
