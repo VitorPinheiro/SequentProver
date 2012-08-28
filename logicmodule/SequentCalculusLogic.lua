@@ -8,7 +8,7 @@
 
 require 'SequentGoalsLogic'
 
--- Junta as funções que este modulo oferece como publicas.
+-- Junta as funções que este modulo oferece como públicas.
 LogicModule = {}
 
 -- Sequente alvo da operação
@@ -946,20 +946,17 @@ end
 -- Vai nos sequentes que ainda nao estao expandidos e faz a expancao até o final
 function LogicModule.expandAll(graph)
 
-	createDebugMessage("VITOR 1")
 	local newGraph = graph		
 	local isAllExpanded = true
 	
 	-- loop em todos os sequentes do grafo. se achar um que nao ta expandido, expande.
 	for k,goal in pairs(goalsList) do
 		local seq = goal:getSequent()
-		createDebugMessage("VITOR 1.5 ".. seq:getLabel())
 		
 		assert( getmetatable(seq) == Node_Metatable , "LogicModule.expandAll expects a Node") -- Garantir que é um vertice
 		
 		if not seq:getInformation("isExpanded") then
 			-- expando
-			createDebugMessage("VITOR 2 - expandi")
 			isAllExpanded = false
 			
 			local operator = nil
@@ -984,16 +981,11 @@ function LogicModule.expandAll(graph)
 	end
 	
 	if not isAllExpanded then
-		createDebugMessage("VITOR 3 - ainda falta")
 		newGraph = LogicModule.expandAll(newGraph)
 	end
 		
 	return newGraph	
 end
 
-
-function printGoals(graph)
-
-
-
-end
+-- Caso o programador deseje usar esse módulo a partir do retorno da função require.
+return LogicModule

@@ -13,7 +13,7 @@ package.path = package.path .. ";..\\logicmodule\\?.lua;..\\logicmodule\\?"
 
 require 'Constants'
 require 'Utility'
-require 'SequentCalculusLogic'
+LogicModule = require 'SequentCalculusLogic'
 --require 'Graph' -- Adicione este quando for usar direto o modulo grafo.
 
 
