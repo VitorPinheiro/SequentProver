@@ -6,10 +6,15 @@
 
 ]]--
 
-require 'Constants.lua'
-require 'Utility.lua'
-dofile '..\\logicmodule\\SequentCalculusLogic.lua'
---dofile '..\\graphmodule\\Graph.lua' -- Adicione este quando for usar direto o modulo grafo.
+-- Adding paths for require function
+package.path = package.path .. ";..\\graphmodule\\?.lua;..\\graphmodule\\?"
+package.path = package.path .. ";..\\logicmodule\\?.lua;..\\logicmodule\\?"
+
+
+require 'Constants'
+require 'Utility'
+require 'SequentCalculusLogic'
+--require 'Graph' -- Adicione este quando for usar direto o modulo grafo.
 
 
 -- Love initial configuration

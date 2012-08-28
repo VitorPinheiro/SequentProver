@@ -8,8 +8,8 @@
 
 ]]--
 
-dofile '..\\graphmodule\\Node.lua'
-dofile '..\\graphmodule\\Edge.lua'
+require 'Node'
+require 'Edge'
 
 --[[ 
 	Defining the Graph

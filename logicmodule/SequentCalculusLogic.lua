@@ -6,7 +6,7 @@
 
 ]]--
 
-dofile "..\\logicmodule\\SequentGoalsLogic.lua"
+require 'SequentGoalsLogic'
 
 -- Junta as funções que este modulo oferece como publicas.
 LogicModule = {}

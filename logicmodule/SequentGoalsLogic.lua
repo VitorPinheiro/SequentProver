@@ -6,8 +6,8 @@
 
 ]]--
 
-dofile "..\\logicmodule\\SequentGraph.lua"
-dofile "..\\logicmodule\\Goal.lua"
+require 'SequentGraph'
+require 'Goal'
 
 -- Junta as funções que este modulo oferece como publicas.
 GoalsLogic = {}
