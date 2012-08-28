@@ -929,8 +929,6 @@ function LogicModule.expandNode( graph, targetNode )
 		GoalSequentNode = nil -- Ja expandiu, agora escolhe um sequente de novo.
 		createDebugMessage("Atualizou grafo!")
 		
-		printGoals() -- WARNING, ONLY FOR DEBUG, DELETE IT - VITOR
-		
 		return newGraph
 	else
 		-- Nao foi um operador, ele clicou fora para cancelar o sequente escolhido
