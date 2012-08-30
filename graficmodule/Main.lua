@@ -7,9 +7,12 @@
 ]]--
 
 -- Adding paths for require function
-package.path = package.path .. ";..\\graphmodule\\?.lua;..\\graphmodule\\?"
+-- For Windows
+package.path = package.path .. ";..\\graphmodule\\?.lua;..\\graphmodule\\?" 
 package.path = package.path .. ";..\\logicmodule\\?.lua;..\\logicmodule\\?"
-
+-- For UNIX
+package.path = package.path .. ";../graphmodule/?.lua;../graphmodule/?" 
+package.path = package.path .. ";../logicmodule/?.lua;../logicmodule/?"
 
 require 'Constants'
 require 'Utility'
