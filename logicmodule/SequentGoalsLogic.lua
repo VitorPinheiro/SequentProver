@@ -19,7 +19,7 @@ function GoalsLogic.assembleGoalList(sequent)
 		goalsList = {}
 	end
 	
-	assert( getmetatable(sequent) == Node_Metatable, "GoalsLogic.assembleGoalList: sequent must not be a node.")
+	assert( getmetatable(sequent) == Node_Metatable, "GoalsLogic.assembleGoalList: sequent must be a node.")
 	
 	local newGoal = nil	
 	

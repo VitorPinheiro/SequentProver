@@ -21,30 +21,6 @@ local goalsList = {}
 
 -------------------------------------------- Private functions --------------------------------------------
 
-local function verifySideOfSequent(originNode, targetNode)
-	-- VE SE O ORIGINNODE TEM ARESTA PRO TARGETNODE.
-	-- SE NAO TIVER EH PQ NAO TA EM EVIDENCIA EM NENHUM LADO DO SEQUENTE E NAO PODE SER EXPANDIDO
-	
-	edgesOut = originNode:getEdgesOut()
-	
-	if edgesOut == nil then
-		return false
-	end
-	
-	local retValues = {}
-	
-	for i=1, #edgesOut do
-		if edgesOut[i]:getDestino():getLabel() == targetNode:getLabel() then
-			return true
-		else
-			return false
-		end
-	end
-	
-	return false
-
-end
-
 --- Cria um sequente novo para poder fazer uma dedução
 -- Cria um SeqX + um nó eX + um nó dX e aponta o eX e o dX para os mesmo lugares que o sequente anterior
 -- apontava.
@@ -107,34 +83,22 @@ local function verifySideOfOperator(sequentNode, operatorNode)
 	assert( sequentNode ~= nil , "verifySideOfOperator must be called only if sequentNode is not null.")	
 	assert( getmetatable(sequentNode) == Node_Metatable , "verifySideOfOperator sequentNode must be a Node")
 	
-	
-	--goalsList[sequentNode:getLabel()]
-	-- Depois vc pega o lado direto pelos goals do sequentNode
-	
-	
-	seqEdgesOutList = sequentNode:getEdgesOut()
-	if seqEdgesOutList == nil then
-		return nil
+	local goal = goalsList[sequentNode:getLabel()]
+	local leftSideOps = goal:getLeftSide()
+	local rightSideOps = goal:getRightSide()	
+
+	for i=1, #leftSideOps do	
+		createDebugMessage("Verificando esquerda sequente")	
+		if leftSideOps[i]:getLabel() == operatorNode:getLabel() then
+			return leftSide
+		end
 	end
 	
-	createDebugMessage("Arestas que saem do "..sequentNode:getLabel()..": ")
-	for i=1, #seqEdgesOutList do
-		createDebugMessage(seqEdgesOutList[i]:getLabel())
-				
-		if seqEdgesOutList[i]:getLabel() == lblEdgeEsq then
-			-- verifica se ta na esquerda
-			createDebugMessage("Verificando esquerda sequente")
-			if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
-				return leftSide
-			end
-		end
-		
-		if seqEdgesOutList[i]:getLabel() == lblEdgeDir then
-			-- verifica se ta na direita, pq pode nao estar em nenhum dos lados. (Usuario clicou em um operador que nao faz parte do sequente que ele tinha clicado)
-			createDebugMessage("Verificando direita sequente")
-			if verifySideOfSequent(seqEdgesOutList[i]:getDestino(), operatorNode) then
-				return rightSide
-			end
+	for i=1, #rightSideOps do	
+		-- verifica se ta na direita, pq pode nao estar em nenhum dos lados. (Usuario clicou em um operador que nao faz parte do sequente que ele tinha clicado)
+		createDebugMessage("Verificando direita sequente")
+		if rightSideOps[i]:getLabel() == operatorNode:getLabel() then						
+			return rightSide
 		end		
 	end
 	
@@ -145,12 +109,18 @@ end
 -- @param graph The graph that will be expanded
 -- @param sequentNode The sequente that the nodeOpNot is part
 -- @param nodeOpNot The operator that will be expanded
-local function expandNodeNot (graph, sequentNode, nodeOpNot)
+local function expandNodeNot (graph, sequentNode, nodeOpNot, sideOfOp)
 	createDebugMessage("expandNodeNot foi chamado para o sequente: "..sequentNode:getLabel().. " e para o operador: "..nodeOpNot:getLabel())
 		
 	--- Enviar todo o grafo apontado pelo not para o outro lado do sequente GoalSequentNode.	
 	-- 1) Verificar o lado que o not esta.
-	local sideOfOperator = verifySideOfOperator(sequentNode, nodeOpNot)
+	
+	local sideOfOperator
+	if sideOfOp == nil then
+		sideOfOperator = verifySideOfOperator(sequentNode, nodeOpNot)
+	else
+		sideOfOperator = sideOfOp
+	end
 	
 	local lblEdge1
 	local lblEdge2
@@ -179,8 +149,7 @@ local function expandNodeNot (graph, sequentNode, nodeOpNot)
 	local edgesOut = node1:getEdgesOut()
 	local isNodeOpNotFound = false
 	local edgeToRemove = nil
-	for i=1, #edgesOut do
-		
+	for i=1, #edgesOut do		
 		if edgesOut[i]:getDestino():getLabel() == nodeOpNot:getLabel() then
 			isNodeOpNotFound = true
 			edgeToRemove = edgesOut[i] --graph:removeEdge(edgesOut[i]) -- ja tiro a aresta
@@ -568,6 +537,7 @@ local function expandNodeImp(graph, sequentNode, nodeOpImp)
 	return graph
 end
 
+-- Vai ser deletada depois da criação do parser
 local function createGraphImplyLeft()
 	local SequentGraph = Graph:new ()
 		
@@ -601,6 +571,7 @@ local function createGraphImplyLeft()
 	return SequentGraph
 end
 
+-- Vai ser deletada depois da criação do parser
 local function createGraphImplyRight()
 
 	local SequentGraph = Graph:new ()
@@ -639,6 +610,7 @@ local function createGraphImplyRight()
 	return SequentGraph
 end
 
+-- Vai ser deletada depois da criação do parser
 local function createNotGraph()
 
 	local SequentGraph = Graph:new ()
@@ -673,6 +645,7 @@ local function createNotGraph()
 
 end
 
+-- Vai ser deletada depois da criação do parser
 local function createOrGraphRight()
 
 	local SequentGraph = Graph:new ()
@@ -707,6 +680,7 @@ local function createOrGraphRight()
 	return SequentGraph
 end
 
+-- Vai ser deletada depois da criação do parser
 local function createOrGraphLeft()
 
 	local SequentGraph = Graph:new ()
@@ -742,6 +716,7 @@ local function createOrGraphLeft()
 	
 end
 
+-- Vai ser deletada depois da criação do parser
 local function createAndGraphLeft()
 
 	local SequentGraph = Graph:new ()
@@ -777,6 +752,7 @@ local function createAndGraphLeft()
 
 end
 
+-- Vai ser deletada depois da criação do parser
 local function createAndGraphRight()
 
 	local SequentGraph = Graph:new ()
@@ -812,6 +788,7 @@ local function createAndGraphRight()
 
 end
 
+-- Vai ser deletada depois da criação do parser
 local function createNotPlusAndGraphRight()
 
 	local SequentGraph = Graph:new ()
@@ -883,7 +860,7 @@ end
 -- The operator node is only expanded if a sequent node were previusly selected.
 -- @param graph The graph that contains the target node.
 -- @param targetNode The node that you want to expand.
-function LogicModule.expandNode( graph, targetNode )
+function LogicModule.expandNode( graph, targetNode, sideOfTargetNode )
 	assert( getmetatable(targetNode) == Node_Metatable , "expandNode expects a Node") -- Garantir que é um vertice
 	createDebugMessage("expandNode foi chamada")
 	
@@ -909,14 +886,42 @@ function LogicModule.expandNode( graph, targetNode )
 	local newGraph = nil
 	
 	if not GoalSequentNode:getInformation("isExpanded") then
-		if typeOfNode == opAnd.graph then				
-			newGraph = expandNodeAnd(graph, GoalSequentNode, targetNode)
+		if typeOfNode == opAnd.graph then		
+			if sideOfTargetNode ~= nil then -- Otimizando quando já se sabe o lado do targetNode em relacao ao sequente.
+				if sideOfTargetNode == leftSide then
+					newGraph = expandNodeAndLeft(graph, GoalSequentNode, targetNode)
+				elseif sideOfTargetNode == rightSide then
+					newGraph = expandNodeAndRight(graph, GoalSequentNode, targetNode)
+				end
+			else
+				newGraph = expandNodeAnd(graph, GoalSequentNode, targetNode)
+			end
 		elseif typeOfNode == opOr.graph then
-			newGraph = expandNodeOr(graph, GoalSequentNode, targetNode)
+			if sideOfTargetNode ~= nil then -- Otimizando quando já se sabe o lado do targetNode em relacao ao sequente.
+				if sideOfTargetNode == leftSide then
+					newGraph = expandNodeOrLeft(graph, GoalSequentNode, targetNode)
+				elseif sideOfTargetNode == rightSide then
+					newGraph = expandNodeOrRight(graph, GoalSequentNode, targetNode)
+				end
+			else
+				newGraph = expandNodeOr(graph, GoalSequentNode, targetNode)
+			end			
 		elseif typeOfNode == opImp.graph then
-			newGraph = expandNodeImp(graph, GoalSequentNode, targetNode)
+			if sideOfTargetNode ~= nil then -- Otimizando quando já se sabe o lado do targetNode em relacao ao sequente.
+				if sideOfTargetNode == leftSide then
+					newGraph = expandNodeImpLeft(graph, GoalSequentNode, targetNode)
+				elseif sideOfTargetNode == rightSide then
+					newGraph = expandNodeImpRight(graph, GoalSequentNode, targetNode)
+				end
+			else
+				newGraph = expandNodeImp(graph, GoalSequentNode, targetNode)
+			end			
 		elseif typeOfNode == opNot.graph then	
-			newGraph = expandNodeNot(graph, GoalSequentNode, targetNode)
+			if sideOfTargetNode ~= nil then -- Otimizando quando já se sabe o lado do targetNode em relacao ao sequente.
+				newGraph = expandNodeNot(graph, GoalSequentNode, targetNode, sideOfTargetNode)
+			else
+				newGraph = expandNodeNot(graph, GoalSequentNode, targetNode)
+			end			
 		end
 	else
 		createDebugMessage("O sequente "..GoalSequentNode:getLabel().."ja foi expandido!")
@@ -959,13 +964,21 @@ function LogicModule.expandAll(graph)
 			
 			local operator = nil
 			
-			local leftSide = goal:getLeftSide()
-			local rightSide = goal:getRightSide()
-			if #leftSide ~= 0 then
-				assert( getmetatable(leftSide[1]) == Node_Metatable , "LogicModule.expandAll expects a Node. "..leftSide[1]:getLabel())
-				operator = leftSide[1]
-			elseif #rightSide ~= 0 then
-				operator = rightSide[1]
+			local leftSideOps = goal:getLeftSide()
+			local rightSideOps = goal:getRightSide()
+			if #leftSideOps ~= 0 then
+				assert( getmetatable(leftSideOps[1]) == Node_Metatable , "LogicModule.expandAll expects a Node. "..leftSideOps[1]:getLabel())
+				operator = leftSideOps[1]
+				
+				GoalSequentNode = seq
+				newGraph = LogicModule.expandNode(newGraph, operator, leftSide)
+			
+			elseif #rightSideOps ~= 0 then
+				assert( getmetatable(rightSideOps[1]) == Node_Metatable , "LogicModule.expandAll expects a Node. "..rightSideOps[1]:getLabel())
+				operator = rightSideOps[1]
+				
+				GoalSequentNode = seq
+				newGraph = LogicModule.expandNode(newGraph, operator, rightSide)
 			else
 				createDebugMessage("O sequente "..seq:getLabel().." nao tem mais nenhum operador. Nao pode ser mais expandido.")
 				isAllExpanded = true -- pq ele nunca vai ser expandido
@@ -973,8 +986,7 @@ function LogicModule.expandAll(graph)
 				break
 			end
 			
-			GoalSequentNode = seq
-			newGraph = LogicModule.expandNode(newGraph, operator)
+			
 		end
 	end
 	

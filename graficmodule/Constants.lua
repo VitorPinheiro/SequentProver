@@ -8,6 +8,9 @@
 
 ]]--
 
+-- Junta as funções que este modulo oferece como públicas.
+ConstantsModule = {}
+
 -- Positioning definitions
 windowWidth = 800
 windowHeight = 600
